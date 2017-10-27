@@ -1,9 +1,9 @@
 -- premake5.lua
-workspace "playground3"
+workspace "test2"
     configurations { "Debug", "Release" }
     platforms { "Win32", "Win64" }
 
-project "playground3"
+project "test2"
     kind "ConsoleApp"
     language "C++"
     files { "source/**.cpp", "source/**.h" }

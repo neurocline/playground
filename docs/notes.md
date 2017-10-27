@@ -49,6 +49,7 @@ source/
 tools/
 vendor/
 .editorconfig
+.gitignore
 premake5.lua
 README.md
 ```
@@ -65,6 +66,8 @@ or package instructions used to reference external source.
 
 The .editorconfig file is optional but strongly recommended; this is where macro code style rules
 are kept. See [Editorconfig](http://editorconfig.org/). Most modern editors support EditorConfig.
+
+The global .gitignore has an line to ignore the generated `build` directory.
 
 ## Build into a single place
 
