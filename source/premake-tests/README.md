@@ -183,3 +183,34 @@ doing dry-run testing or in generating projects that you can check in to source 
 
 Xcode projects use bunde files, which show up as directories with files in them - we get
 a `*.xcworkspace` for the top level, and `*.xcodeproj` for each project in the workspace.
+
+## Local variables and Premake
+
+We can clean up the code and remove duplication by using a few Lua variables.
+
+```
+local ROOT = "../../build/" -- we are two levels from the top
+local PROJECT = "test3c"
+local WORKSPACE = ROOT .. PROJECT
+local BIN = WORKSPACE .. "/bin_%{cfg.platform}_%{cfg.buildcfg}"
+
+workspace(PROJECT)
+    configurations { "Debug", "Release" }
+    platforms { "x32", "x64" }
+    location(WORKSPACE)
+
+project(PROJECT)
+    kind "ConsoleApp"
+    language "C++"
+    files { "main.cpp" }
+    objdir(BIN .. "/obj")
+    targetdir(BIN)
+```
+
+The Premake code introduces a large number of variables into the scope of our Lua code, so we
+name ours uppercase to avoid collisions and to make it clear that these are our variables and
+not from the system or Premake. This is a convention, not any kind of requirement, of course.
+
+It's important to keep the number of variables low, and also to note that local variables stay
+in the scope of the block they were created in. If you wish global variables, omit the `local`
+token from the declaration (and you may want to make global variable names more verbose).
