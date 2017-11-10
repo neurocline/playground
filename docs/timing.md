@@ -39,6 +39,13 @@ Calling `rdtsc` in a tight loop gives an overhead of 24 clocks, or about 6 nanos
 to the QPC loop, so it's likely that both have very low access time and most of that 6 nanoseconds
 is the loop overhead.
 
+A call to `high_resolution_clock::now()` is about 30 nanoseconds. This is presumably due to the
+math in converting between the underlying QPF tick rate and the high_resolution_clock ratio of
+nanonsecond ticks.
+
+A call to `duration_cast<double>(clock)` takes about 55 nanoseconds. This is the cost of doing
+the conversion from the rational number to a double.
+
 ### Reference
 
 [Acquiring high-resolution time stamps](https://msdn.microsoft.com/en-us/library/windows/desktop/dn553408(v=vs.85).aspx)
@@ -52,3 +59,5 @@ is the loop overhead.
 [QueryPerformanceCounter calibration with GetTickCount](https://www.janbambas.cz/queryperformancecounter-calibration-with-gettickcount/)
 
 [Is QueryPerformanceFrequency accurate when using HPET?](https://stackoverflow.com/questions/22942123/is-queryperformancefrequency-accurate-when-using-hpet)
+
+[High Resolution Clocks and Timers for Performance Measurement in Windows.](http://computerperformancebydesign.com/high-resolution-clocks-and-timers-for-performance-measurement-in-windows/)
