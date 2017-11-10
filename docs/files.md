@@ -28,3 +28,12 @@ in files is limited to the first 2 GB. So using C File I/O is rather pointless i
 std::ifstream
 std::ofstream
 ```
+
+Must set buffering to get equivalent speed. Evidently on some platforms (at least MSVC), if you
+don't set a buffer it does byte-at-a-time copies, which is insane. This is needed for both ofstream
+and ifstream.
+
+```
+    void* rdbuf = std::malloc(65536);
+    f.rdbuf()->pubsetbuf((char*)rdbuf, 65536);
+```

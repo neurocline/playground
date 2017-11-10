@@ -8,10 +8,10 @@
 
 #include <Windows.h>
 
-#define _QPF 0
-#define _QPC 0
-#define _HRC 0
-#define _TSC 0
+#define _QPF 1
+#define _QPC 1
+#define _HRC 1
+#define _TSC 1
 #define _TIMER 1
 void QPF();
 void QPC();
