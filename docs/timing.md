@@ -307,3 +307,5 @@ at 0.46 nanoseconds. Something to think about.
 [Timer function to provide time in nano seconds using C++](https://stackoverflow.com/questions/275004/timer-function-to-provide-time-in-nano-seconds-using-c/275231#275231)
 
 [Posit Arithmetic](https://posithub.org/docs/Posits4.pdf)
+
+[64bit nasm division idiv](https://stackoverflow.com/questions/8858104/64bit-nasm-division-idiv)

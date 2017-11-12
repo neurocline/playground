@@ -44,5 +44,8 @@ private:
 //int64_t time();
 
 // Supports int64_t (nanoseconds) and double (seconds)
-template<typename T>
-auto perf_counter() -> T;
+//template<typename T>
+//auto perf_counter() -> T;
+
+void InitFastNanos();
+uint64_t FastNanos();

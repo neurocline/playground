@@ -9,6 +9,7 @@ project "timer"
     kind "ConsoleApp"
     language "C++"
     files { "main.cpp", "Timing.cpp", "Timing.h" }
+    warnings "Extra"
     filter { "action:vs*" }
         buildoptions { '/std:c++17' }
         defines { "_ITERATOR_DEBUG_LEVEL=0", "_CRT_SECURE_NO_WARNINGS", "_SCL_SECURE_NO_WARNINGS" }

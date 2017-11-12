@@ -1,5 +1,7 @@
 // main.cpp
 
+#include "Timing.h"
+
 #include <iostream>
 #include <ctime>
 #include <ratio>
@@ -20,10 +22,12 @@ void HRC();
 void TSC();
 void TimerTest();
 void test();
+void TestLongDivide();
 
-int main(int argc, char** argv)
+int main(int /*argc*/, char** /*argv*/)
 {
     //test();
+    TestLongDivide();
 
     #if _QPF
     QPF();
@@ -48,6 +52,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
+#if 0
 LARGE_INTEGER nanoTicks; // this is really a 32.32 fraction of nanos per tick
 void BadInitFastNanos()
 {
@@ -72,32 +77,7 @@ uint64_t BadFastNanos()
     uint64_t v = (a << 32) + b + c + (d >> 32);
     return v;
 }
-
-LARGE_INTEGER intNano;
-LARGE_INTEGER fracNano;
-void InitFastNanos()
-{
-    // TBD actual measurement and long-precision division
-    intNano.QuadPart = 0xFFLL;
-    fracNano.QuadPart = 0x7D3B3CCDFC1006E2LL;
-}
-
-uint64_t FastNanos()
-{
-    LARGE_INTEGER counter;
-    QueryPerformanceCounter(&counter);
-
-    // c0w0 is less than 1 bit of precision. We lose a fraction of a bit by not computing it
-    uint64_t c0w1 = (uint64_t) counter.LowPart * fracNano.HighPart;
-    uint64_t c0w2 = (uint64_t) counter.LowPart * intNano.LowPart;
-    uint64_t c1w0 = (uint64_t) counter.HighPart * fracNano.LowPart;
-    uint64_t c1w1 = (uint64_t) counter.HighPart * fracNano.HighPart;
-    uint64_t c1w2 = (uint64_t) counter.HighPart * intNano.LowPart;
-
-    int64_t v = (c0w1 >> 32) + c0w2 + (c1w0 >> 32) + c1w1 + (c1w2 << 32)
-                    + (((c0w1 & 0xFFFFFFFF) + (c1w0 & 0xFFFFFFFF) + 0x80000000) >> 32);
-    return v;
-}
+#endif
 
 void TestFast()
 {
@@ -109,10 +89,10 @@ void TestFast()
     nanoTicks.HighPart = (int) billion; // multiply by 2^32
     nanoTicks.QuadPart /= freq;
 
-    double nanoF = (double) billion / (double) freq;
-    double two32 = (double) (1LL << 32);
+//    double nanoF = (double) billion / (double) freq;
+//    double two32 = (double) (1LL << 32);
 
-    int64_t maxcount = int64_t(0x7FFF'FFFF'FFFF'FFFFLL / billion);
+//    int64_t maxcount = int64_t(0x7FFF'FFFF'FFFF'FFFFLL / billion);
 
     LARGE_INTEGER intF;
     intF.QuadPart = 0xFFLL;
@@ -128,17 +108,17 @@ void TestFast()
         int64_t v1 = whole + part;
 
         // fastmul method
-        uint64_t d = (uint64_t) counter.LowPart * nanoTicks.LowPart;
-        uint64_t c = (uint64_t) counter.HighPart * nanoTicks.LowPart;
-        uint64_t b = (uint64_t) counter.LowPart * nanoTicks.HighPart;
-        uint64_t a = (uint64_t) counter.HighPart * nanoTicks.HighPart;
-        int64_t v2 = int64_t((a << 32) + b + c + (d >> 32));
+ //       uint64_t d = (uint64_t) counter.LowPart * nanoTicks.LowPart;
+ //       uint64_t c = (uint64_t) counter.HighPart * nanoTicks.LowPart;
+ //       uint64_t b = (uint64_t) counter.LowPart * nanoTicks.HighPart;
+ //       uint64_t a = (uint64_t) counter.HighPart * nanoTicks.HighPart;
+ //       int64_t v2 = int64_t((a << 32) + b + c + (d >> 32));
 
         // direct double method
-        int64_t v3 = int64_t(counter.QuadPart * nanoF);
+//        int64_t v3 = int64_t(counter.QuadPart * nanoF);
 
         // long direct double
-        int64_t v4 = int64_t(counter.HighPart * nanoF * two32 + counter.LowPart * nanoF);
+//        int64_t v4 = int64_t(counter.HighPart * nanoF * two32 + counter.LowPart * nanoF);
 
         /// long fraction
         uint64_t c0w1 = (uint64_t) counter.LowPart * fracF.HighPart;
@@ -307,6 +287,7 @@ void TSC()
 }
 #endif
 
+#if 0
 class ChronoTimer
 {
 public:
@@ -340,6 +321,7 @@ public:
 private:
     time_point start;
 };
+#endif
 
 void TimerTest()
 {
