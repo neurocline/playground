@@ -3,7 +3,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <chrono>
+#include <vector>
 
 // (quotient, remainder) = dividend / divisor
 // divisor must be normalized so that high word is non-zero
@@ -14,6 +14,42 @@ bool LongDivide(
     uint16_t* q /*quotient*/, uint16_t* r /*remainder*/,
     uint16_t* u /*dividend*/, uint16_t* v /*divisor*/,
     int m /*dividend_size*/, int n /*divisor_size*/);
+
+// =========================================================================
+
+class Bignum
+{
+    enum { LOCALSIZE = 7 };
+public:
+    Bignum() : size_(0) { oplocal_[0] = 0; }
+    ~Bignum() { if (size_ > LOCALSIZE) delete extended; }
+
+    Bignum(int v);
+    Bignum(long long v);
+    Bignum::Bignum(char const* p);
+
+    operator int() const;
+    operator long long() const;
+
+    int len() { return size_; }
+    uint32_t operator [](int i) { return oplocal_[i]; }
+
+    void mul_1(uint32_t plier);
+    void add_1(uint32_t digit);
+
+private:
+    // A Bignum takes up 32 bytes of stack storage. Larger values are
+    // allocated on the heap. Bignums aren't cheap, so don't worry about space.
+    // TBD something other than vector
+    int size_;
+    union
+    {
+        uint32_t oplocal_[LOCALSIZE];
+        std::vector<uint32_t>* extended;
+    };
+};
+
+void TestBignum();
 
 // =========================================================================
 

@@ -126,3 +126,134 @@ bool LongDivide(
 
     return true;
 }
+
+// =========================================================================
+
+#include "Bignum.h"
+
+// Note that Bignums don't have overflows, they just get bigger. And if we did floating-point
+// bignums, then there would be no underflow either.
+
+Bignum::Bignum(int v)
+{
+    oplocal_[0] = v;
+    size_ = 1;
+}
+
+Bignum::Bignum(long long v)
+{
+    oplocal_[0] = v & 0xFFFFFFFFL;
+    oplocal_[1] = v >> 32;
+    size_ = 2;
+}
+
+// for now, assume base 10 positive number
+// TBD growing data past 24 bytes
+// TBD multiply and add at the same time
+Bignum::Bignum(char const* p)
+{
+    size_ = 1;
+    oplocal_[0] = 0;
+
+    for (; *p; p++)
+    {
+        int digit = *p - '0';
+        mul_1(10);
+        #if 0
+        int carry = 0;
+        for (int i = 0; i < size_; i++)
+        {
+            long long r = carry + oplocal_[i] * 10LL;
+            if (r >= 0x1'0000'0000L)
+            {
+                carry = r >> 32;
+                if (i+1 == size_)
+                {
+                    size_ += 1;
+                    oplocal_[i+1] = 0;
+                }
+            }
+            oplocal_[i] = (uint32_t) r;
+        }
+        oplocal_[0] += digit; // grr this can overflow too!
+        #endif
+        add_1(digit);
+    }
+}
+
+// Add a single place digit to a bignum
+void Bignum::add_1(uint32_t digit)
+{
+    long long carry = digit;
+    for (int i = 0; i < size_; i++)
+    {
+        long long r = carry + oplocal_[i];
+        oplocal_[i] = (uint32_t) r;
+        int hi = r >> 32;
+        if (hi == 0)
+            break;
+
+        carry = hi;
+        if (i+1 == size_)
+        {
+            size_ += 1;
+            oplocal_[i+1] = 0;
+        }
+    }
+}
+
+// Multiply a bignum by a single place digit
+void Bignum::mul_1(uint32_t plier)
+{
+    int carry = 0;
+    for (int i = 0; i < size_; i++)
+    {
+        long long r = carry + oplocal_[i] * (long long) plier;
+        int hi = r >> 32;
+        if (hi != 0)
+        {
+            carry = hi;
+            if (i+1 == size_)
+            {
+                size_ += 1;
+                oplocal_[i+1] = 0;
+            }
+        }
+        oplocal_[i] = (uint32_t) r;
+    }
+}
+
+// consider operator"" _h, _d, _b etc.
+
+Bignum::operator int() const
+{
+    return oplocal_[0];
+}
+
+Bignum::operator long long() const
+{
+    return ((long long) oplocal_[1] << 32) | oplocal_[0];
+}
+
+#include <cassert>
+
+void TestBignum()
+{
+    Bignum b1("0");
+    assert(b1.len() == 1); assert(b1[0] == 0);
+
+    Bignum b2("100");
+    assert(b2.len() == 1); assert(b2[0] == 100);
+
+    Bignum b3("65536");
+    assert(b3.len() == 1); assert(b3[0] == 65536);
+
+    Bignum b4("4294967295");
+    assert(b4.len() == 1); assert(b4[0] == 0xFFFFFFFFL);
+
+    Bignum b4b("4294967296");
+    assert(b4b.len() == 2); assert(b4b[0] == 0); assert(b4b[1] == 1);
+
+    Bignum b5("102030405060708090");
+    assert(b5.len() == 2); assert(b5[0] == 0xE1EEC6FA); assert(b5[1] == 0x16A7C1C);
+}

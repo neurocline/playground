@@ -17,6 +17,9 @@
 
 int main(int /*argc*/, char** /*argv*/)
 {
+    Bignum b("102030405060708090");
+    TestBignum();
+
     //for (uint64_t visor = 993319; visor < 1ULL << 48; visor += 993319)
     //    for (uint64_t dend = 1046527; dend < 1ULL << 48; dend += 1046527)
     int count = 0;
