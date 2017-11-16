@@ -214,3 +214,22 @@ not from the system or Premake. This is a convention, not any kind of requiremen
 It's important to keep the number of variables low, and also to note that local variables stay
 in the scope of the block they were created in. If you wish global variables, omit the `local`
 token from the declaration (and you may want to make global variable names more verbose).
+
+## C++ language
+
+Premake has a relatively new keyword called `cppdialect` that can be used to select a specific version
+of C++. As of Premake 5.0.0-alpha12, this is the behavior
+
+| Premake | Visual Studio | GCC/Clang |
+| ------- | ------------- | --------- |
+| nothing | nothing | nothing |
+| `cppdialect "C++11"` | nothing | `-std=c++11` |
+| `cppdialect "C++14"` | `/std:c++14` | `-std=c++14` |
+| `cppdialect "C++17"` | `/std:c++latest` | `-std=c++17` |
+
+Visual Studio didn't add C++ version selection until C++14; its history of compliance to that point
+was weak. I expect Premake emits `/std:c++latest` instead of `/std:c++14` because the latter didn't
+exist until VS2017 version 15.3, which was August 2017, after this version of Premake was baked.
+
+In Visual Studio 2015, C++14 is the default. VS2015 was the first version with mostly-complete C++11
+support, and did not have full C++14 support. See [Visual C++ Language Conformance](https://docs.microsoft.com/en-us/cpp/visual-cpp-language-conformance) for details on C++ standard compliance in Visual C++. Apparently, Visual Studio 2015 version 15.5 supports about 75% of C++17 features.

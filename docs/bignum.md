@@ -20,13 +20,13 @@ Overview
 
 GNU MP Bignum Library and derivatives
 
-- [GNU MP Bignum Library
-](https://gmplib.org/)
+- [GNU MP Bignum Library](https://gmplib.org/)
 - [GNU Multiple Precision Arithmetic Library](https://en.wikipedia.org/wiki/GNU_Multiple_Precision_Arithmetic_Library)
 - [MPIR: Multiple Precision Integers and Rationals](http://mpir.org/)
 - [MPIR](https://en.wikipedia.org/wiki/MPIR_(mathematics_software))
 - [GNU MPFR](https://en.wikipedia.org/wiki/GNU_MPFR)
 - [Class Library for Numbers](https://en.wikipedia.org/wiki/Class_Library_for_Numbers)
+- [GMP Algorithms](https://gmplib.org/manual/Algorithms.html#Algorithms)
 
 LibTomMath
 
@@ -40,3 +40,5 @@ Misc
 - [C++ Big Integer Library](https://mattmccutchen.net/bigint/)
 - [ttmath](https://github.com/logtcn/ttmath)
 - [Infint](https://sercantutar.github.io/infint/)
+- [Huge Long Numbers](https://github.com/daidodo/huge-long-number)
+- [A Class for Representing Large Numbers](http://www.drdobbs.com/a-class-for-representing-large-integers/184403247)

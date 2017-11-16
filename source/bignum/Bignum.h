@@ -32,7 +32,8 @@ public:
     operator long long() const;
 
     int len() { return size_; }
-    uint32_t operator [](int i) { return oplocal_[i]; }
+    uint32_t operator [](int i) const { return oplocal_[i]; }
+    uint32_t& operator [](int i) { return oplocal_[i]; }
 
     void mul_1(uint32_t plier);
     void add_1(uint32_t digit);

@@ -149,7 +149,7 @@ Bignum::Bignum(long long v)
 
 // for now, assume base 10 positive number
 // TBD growing data past 24 bytes
-// TBD multiply and add at the same time
+// TBD multiply and add at the same time - mul_add_1? could carry more than 1 digit?
 Bignum::Bignum(char const* p)
 {
     size_ = 1;
@@ -256,4 +256,7 @@ void TestBignum()
 
     Bignum b5("102030405060708090");
     assert(b5.len() == 2); assert(b5[0] == 0xE1EEC6FA); assert(b5[1] == 0x16A7C1C);
+
+    b5[2] = b5[1] + 1; // testing operator[] assign
+    assert(b5[1] + 1 == b5[2]);
 }

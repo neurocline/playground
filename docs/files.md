@@ -37,3 +37,11 @@ and ifstream.
     void* rdbuf = std::malloc(65536);
     f.rdbuf()->pubsetbuf((char*)rdbuf, 65536);
 ```
+
+# Misc
+
+- https://stackoverflow.com/questions/9425414/using-ofstream-for-buffered-output-to-gain-performance
+- https://stackoverflow.com/questions/12997131/stdfstream-buffering-vs-manual-buffering-why-10x-gain-with-manual-buffering
+- https://stackoverflow.com/questions/17468088/performance-difference-between-c-and-c-style-file-io
+- https://stackoverflow.com/questions/16351339/why-c-output-is-too-much-slower-than-c
+- https://stackoverflow.com/questions/11563963/writing-a-binary-file-in-c-very-fast/39097696#39097696

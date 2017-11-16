@@ -309,3 +309,10 @@ at 0.46 nanoseconds. Something to think about.
 [Posit Arithmetic](https://posithub.org/docs/Posits4.pdf)
 
 [64bit nasm division idiv](https://stackoverflow.com/questions/8858104/64bit-nasm-division-idiv)
+
+- https://docs.python.org/3/library/time.html
+- http://man7.org/linux/man-pages/man2/gettimeofday.2.html
+- https://www.gnu.org/software/libc/manual/html_node/High_002dResolution-Calendar.html
+- https://blog.habets.se/2010/09/gettimeofday-should-never-be-used-to-measure-time.html
+- https://github.com/ThomasHabets/monotonic_clock/blob/master/src/monotonic_mach.c
+- http://code-factor.blogspot.com/2009/11/monotonic-timers.html
