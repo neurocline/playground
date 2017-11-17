@@ -1,7 +1,7 @@
 Premake Manual
 ==============
 
-This is tidbits towards a complete Premake manual.
+This is tidbits towards a complete Premake 5 manual.
 
 Introductory Notes
 ==================
@@ -16,8 +16,173 @@ you could enable to troubleshoot problems.
 In lieu of that, we'll present some ways that you can narrow in on problems in your
 Premake scripts.
 
+Project structure
+=================
+
+Premake expects Lua scripts of a specific form to be presented to the `premake` tool.
+The default name for the top-level script is `premake5.lua`.
+
+Premake command line
+====================
+
+The following examples assume that the `premake5` binary is somewhere on the `PATH`.
+
+The general form of the command-line is
+
+`premake5 [<option>...] <action> [<argument>...]`
+
+A typical command might look like this:
+
+```
+premake5 vs2017
+```
+
+which will look for a file in the current directory named `premake5.lua` and then read it
+and use its instructions to generate Visual Studio 2017 project files (.sln and .vcxproj).
+
+Get simple help (mostly to remind you what the actions are) with `premake5 --help`.
+
+Actions
+-------
+
+Premake5 commands expect a single verb called `action` - this is the action to take,
+typically to generate project files for a specific build system. For a full list, see
+**filter:actions** in the command help below. An abbreviated list is as follows:
+
+```
+gmake
+vs2017
+xcode4
+```
+
+Options
+-------
+
+Premake has a number of built-in options, and more can be added by your Premake5 script. The most
+common are
+
+- `--fatal`: treat warnings in scripts as errors
+- `--file=<script>`: read `<file>` as the top-level script (defaults to `premake5.lua`)
+- `--insecure`: skips SSH cert checks for package downloads (needed in some firewalled environments)
+
+It is possible to have a shared set of scripts that all your projects can pull from. This is not
+recommended, but some workflows prefer this
+
+- `--scripts=<path>`: add `<path>` to the set of paths that Premake searches for scripts
+- `--systemscript=<file>`: override default system script (`premake5-system.lua`)
+
+It is possible to have Premake stop and wait for you to enter extra information specific to your
+build. See the **interactive** section for more details.
+
+- `--interactive`: opens an interactive command prompt.
+
+Since Premake5 is a standalone program and not dependent on any operating system libraries, you can
+generate project files for any target from any machine. By default, it assumes the target os is
+the same as the current os. This is mostly relevant to the `gmake` actions.
+
+- `--os=<value>`: select OS, one of `aix`, `bsd`, `haiku`, `hurd`, `linux`, `macosx`, `solaris`, `windows`
+
+You can select a specific compiler (relevant to the `gmake` actions only)
+
+- `--cc=<value>`: select a C/C++ compiler, one of `clang` or `gcc`.
+- `--dc=<value>`: select a D compiler, one of `dmd`, `gdc`, or `ldc`.
+- `--dotet=<value>`: select a .NET compiler, one of `msnet`, `mono`, or `pnet`
+
+There are also some help options:
+
+- `--help`: display command-line help
+- `--version`: show Premake version
+
+Interactive
+-----------
+
+For debugging, you can cause a REPL prompt to come into existence. There are two ways.
+
+On the command-line, if you add `--interactive`, a REPL prompt will be started after project
+scripts have been processed and Premake data set up. You'll need knowledge of Premake internals,
+but the REPL will let you enter and execute arbitrary Lua commands to your heart's content.
+
+In code, you can call `debug.prompt()`, which will start up the REPL prompt at that point
+in the script parsing. This may be useful to narrow down what you are looking at - perhaps
+some later part of your project scripts is overwriting data that you wouldn't see if you opened
+the REPL at the end of parsing.
+
+You'll need to know Lua and something about the internals of Premake. The source code to Premake
+is available, which helps, and the StackOverflow and Premake mailing list both have information
+on them.
+
+For example, this will print the top-level of the `premake` table, which holds most Premake
+information:
+
+```
+for k,v in pairs(premake) do print(k,v) end
+```
+
+For real debugging, I assume you would add some debugging code to your Premake scripts that you
+can call as helper functions. It would be nice if this was actually part of Premake itself, or
+added when the REPL loop is called.
+
+There doesn't appear to be any way to exit the REPL and cause processing to continue.
+
 Premake commands
 ================
+
+architecture
+------------
+
+The Premake `architecture` command lets you specify the system architecture targeted by
+the configuration. This is necessary for non-trivial configurations. The following
+architectures are built-in, but more could be added by add-on modules.
+
+- `architecture "x86"` sets the 32-bit x86 architecture
+- `architecture "x64"` sets the 64-bit x86-64 architecture
+- `architecture "ARM"` sets the ARM architecture
+
+Remembering that Premake has both `configurations` and `platforms` and both combine to
+make a configuration. Premake claims that platform names have no predefined meaning, but
+this is not precisely true. If no platform names are supplied, then Premake uses whatever
+the toolset defaults are.
+
+- toolset `msc`: defaults are "Win32", "Win64"
+
+This is what Premake appears to do by default for the `msc` toolset. For any other platform
+name, it just assumes `Win32` which means x86 architecture, and that's probably not what you want.
+
+- `platforms { "Win32" }` == `architecture "x86"`
+- `platforms { "Win64" }` == `architecture "x86_64"` (Visual Studio sees this as `x64` platform)
+- `platforms { "x64" }` == `architecture "x86_64"`
+- `platforms { "x32" }` == `architecture "x86"` (Visual Studio sees this as `Win32` platform)
+
+If your platform names are anything else, you will need to add `architecture`
+commands in filters to set up configurations properly. The pattern looks like this
+
+```
+workspace "test"
+    configurations { "Debug", "Release" }
+    platforms { "Win32Fast", "Win64Slow" }
+
+project "test"
+    kind "ConsoleApp"
+    language "C++"
+    files { "**.cpp", "**.h" }
+    
+    filter "platforms:Win32*"
+        architecture "x86"
+    filter "platforms:Win64*"
+        architecture "x86_64"
+```
+
+You could even do crazy things like make Debug-Win32Fast be x64 architecture. I assume that's a bad
+idea, but Premake wouldn't care.
+
+Or, you may wish to use the `platforms` list for another axis, like console app versus static
+library versus dynamic library versus gui app, and just build with a single architecture. Or have
+your architecture encoded into your configuration name. These are all just strings, and the only
+thing Premake does is check platform names against toolsets to look for defaults to set.
+
+This calls for a best practices document.
+
+[Premake5 wiki: architecture](https://github.com/premake/premake-core/wiki/architecture)
 
 buildoptions
 ------------
@@ -132,6 +297,11 @@ flags
 
 [Premake5 wiki: toolset](https://github.com/premake/premake-core/wiki/flags)
 
+system
+------
+
+[Premake5 wiki: toolset](https://github.com/premake/premake-core/wiki/flags)
+
 toolset
 -------
 
@@ -184,8 +354,19 @@ Note: there are apparently other toolsets like `v140_clang_3_7` or `LLVM-vs2014`
 Reference
 =========
 
+[premake/premake-core (source code)](https://github.com/premake/premake-core)
+
 [Premake 5 User Guide](https://github.com/premake/premake-core/wiki)
 
 [Premake Development](https://groups.google.com/forum/#!forum/premake-development)
 
 [Premake for Beginners](https://github.com/JohannesMP/Premake-for-Beginners/blob/master/Build/premake5.lua_commented.lua)
+
+[What's new in 5.0](https://github.com/premake/premake-core/wiki/What%27s-New-in-5.0)
+
+Premake expects you to know some Lua.
+
+- [The Lua Programming Language](https://www.lua.org/)
+- [Lua 5.3 Reference Manual](https://www.lua.org/manual/5.3/)
+- [Programming in Lua (5.0)](https://www.lua.org/pil/contents.html)
+- [How to dump a table to console?](https://stackoverflow.com/questions/9168058/how-to-dump-a-table-to-console)
