@@ -135,7 +135,7 @@ the configuration. This is necessary for non-trivial configurations. The followi
 architectures are built-in, but more could be added by add-on modules.
 
 - `architecture "x86"` sets the 32-bit x86 architecture
-- `architecture "x64"` sets the 64-bit x86-64 architecture
+- `architecture "x68-64"` sets the 64-bit x86-64 architecture
 - `architecture "ARM"` sets the ARM architecture
 
 Remembering that Premake has both `configurations` and `platforms` and both combine to
@@ -149,9 +149,14 @@ This is what Premake appears to do by default for the `msc` toolset. For any oth
 name, it just assumes `Win32` which means x86 architecture, and that's probably not what you want.
 
 - `platforms { "Win32" }` == `architecture "x86"`
-- `platforms { "Win64" }` == `architecture "x86_64"` (Visual Studio sees this as `x64` platform)
 - `platforms { "x64" }` == `architecture "x86_64"`
 - `platforms { "x32" }` == `architecture "x86"` (Visual Studio sees this as `Win32` platform)
+
+Note that `Win64` is not a name recognized by Premake's `msc` toolset, and if you use it, you
+will get a configuration name that is "Debug Win64". If the platform name matches the architecture,
+Premake can suppress it from the generated project. This is all due to the fact that Premake's
+system for identifying the parts of a build don't precisely map to that used by Visual Studio,
+or Xcode.
 
 If your platform names are anything else, you will need to add `architecture`
 commands in filters to set up configurations properly. The pattern looks like this
@@ -296,6 +301,30 @@ flags
 -----
 
 [Premake5 wiki: toolset](https://github.com/premake/premake-core/wiki/flags)
+
+platforms
+---------
+
+The `platforms` command declares the set of platforms in your workspace or project. Project
+platforms are inherited from the enclosing workspace. Each toolset has a set of default
+platforms that are used if no user-specified platforms are offered.
+
+Some platforms have magic behavior. On the `msc` toolset, the following platform
+names are recognized and have default behavior.
+
+- `toolset:msc, platform:Win32`: architecture=`x86`
+- `toolset:msc, platform:x86`: architecture=`x86`, platform renamed to `Win32` in generated project
+- `toolset:msc, platform:x64`: architecture=`x68-64`,
+
+Note that `Win64` is not a name recognized by Premake's `msc` toolset, and if you use it, you
+will get a configuration name that is "Debug Win64". If the platform name matches the architecture,
+Premake can suppress it from the generated project. This is all due to the fact that Premake's
+system for identifying the parts of a build don't precisely map to that used by Visual Studio,
+or Xcode.
+
+TBD - move duplicated text out of `architecture` and link it to here, or write up some higher-level
+text describing Premake's `configurations` and `platforms` and how they map onto build systems
+like Visual Studio and Xcode.
 
 system
 ------

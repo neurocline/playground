@@ -1,16 +1,15 @@
 -- premake5.lua
-workspace "playground3"
+workspace "playground"
     configurations { "Debug", "Release" }
-    platforms { "Win32", "Win64" }
+    platforms { "x32", "x64" }
+    location("../build")
 
-project "playground3"
-    kind "ConsoleApp"
-    language "C++"
-    files { "source/**.cpp", "source/**.h" }
-    
-    filter "platforms:Win32"
-        system "Windows"
-        architecture "x86"
-    filter "platforms:Win64"
-        system "Windows"
-        architecture "x86_64"
+filter { "platforms:x32" }
+    architecture "x86"
+filter { "platforms:x64" }
+    architecture "x64"
+
+include "bignum"
+include "compat"
+include "file"
+include "timer"

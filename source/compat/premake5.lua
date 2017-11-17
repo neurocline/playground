@@ -1,15 +1,7 @@
--- premake5.lua
-
 local BUILD = "../../build/compat" -- we are two levels from the top
-local WORKSPACE = "compat"
 
-workspace(WORKSPACE)
-    configurations { "Debug", "Release" }
-    platforms { "x32", "x64" }
+project("compat")
     location(BUILD)
-    -- toolset "msc-v140"
-
-project(WORKSPACE)
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++17"
