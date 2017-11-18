@@ -65,17 +65,6 @@ common are
 - `--file=<script>`: read `<file>` as the top-level script (defaults to `premake5.lua`)
 - `--insecure`: skips SSH cert checks for package downloads (needed in some firewalled environments)
 
-It is possible to have a shared set of scripts that all your projects can pull from. This is not
-recommended, but some workflows prefer this
-
-- `--scripts=<path>`: add `<path>` to the set of paths that Premake searches for scripts
-- `--systemscript=<file>`: override default system script (`premake5-system.lua`)
-
-It is possible to have Premake stop and wait for you to enter extra information specific to your
-build. See the **interactive** section for more details.
-
-- `--interactive`: opens an interactive command prompt.
-
 Since Premake5 is a standalone program and not dependent on any operating system libraries, you can
 generate project files for any target from any machine. By default, it assumes the target os is
 the same as the current os. This is mostly relevant to the `gmake` actions.
@@ -87,6 +76,19 @@ You can select a specific compiler (relevant to the `gmake` actions only)
 - `--cc=<value>`: select a C/C++ compiler, one of `clang` or `gcc`.
 - `--dc=<value>`: select a D compiler, one of `dmd`, `gdc`, or `ldc`.
 - `--dotet=<value>`: select a .NET compiler, one of `msnet`, `mono`, or `pnet`
+
+Premake is itself a large set of Lua scripts. You can run with a modified version of these scripts
+by pointing Premake to a new source for the scripts; this lets you fix or update behavior in
+Premake itself without waiting for a new release (e.g. supporting the latest version of Visual
+Studio). This is definitely an advanced feature, and largely only used by Premake developers.
+
+- `--scripts=<path>`: add `<path>` to the set of paths that Premake searches for scripts
+- `--systemscript=<file>`: override default system script (`premake5-system.lua`)
+
+It is possible to have Premake stop and wait for you to enter extra information specific to your
+build. See the **interactive** section for more details.
+
+- `--interactive`: opens an interactive command prompt.
 
 There are also some help options:
 
