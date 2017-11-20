@@ -22,6 +22,27 @@ Project structure
 Premake expects Lua scripts of a specific form to be presented to the `premake` tool.
 The default name for the top-level script is `premake5.lua`.
 
+Include Paths
+=============
+
+Many languages have some kind of source include command - for example, C/C++ has
+`#include`, Go has `import`. There is also further differentiation in some build
+environments between "user includes" and "system includes".
+
+`includedirs { paths... }` adds `paths...` to the set of include directories that
+is used for both user and system includes.
+
+`userincludedirs { paths... }` adds `paths...` to the set of user-only include
+directories - if the targetted build system does not have the concept of user-only
+includes, then this has the same effect as `includedirs`.
+
+`sysincludedirs { paths...}` adds `paths...` to the set of system include directories.
+Note that this is NOT "system-only includes", since some languages and their build
+systems search both user paths and system paths for user includes. However, some
+build systems treat "system includes" as semi-privileged entities, for example disabling
+warnings. If the targetted build system does not have the concept of system includes,
+then this has the same effect as `includedirs`.
+
 Premake command line
 ====================
 
