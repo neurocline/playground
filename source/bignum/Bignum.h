@@ -26,7 +26,7 @@ public:
 
     Bignum(int v);
     Bignum(long long v);
-    Bignum::Bignum(char const* p);
+    Bignum(char const* p);
 
     operator int() const;
     operator long long() const;
@@ -54,10 +54,27 @@ void TestBignum();
 
 // =========================================================================
 
+#ifdef _MSC_VER
 #include <intrin.h>
+#elif 1
+#include <x86intrin.h>
+#define __lzcnt(X) __lzcnt32(X)
+#elif !defined (MYLZCNT)
+#define MYLZCNT
+static __inline__ unsigned short
+__lzcnt16(unsigned short __X)
+{
+    return __X ? __builtin_clzs(__X) : 16;
+}
+static __inline__ unsigned int
+__lzcnt(unsigned int __X)
+{
+    return __X ? __builtin_clz(__X) : 32;
+}
+#endif
 
 template <typename WORD>
-class ContainsType;
+struct ContainsType;
 
 template<>
 struct ContainsType<uint16_t>
@@ -67,7 +84,7 @@ struct ContainsType<uint16_t>
     static constexpr type base = 1 << 16;
     static constexpr type mask = base - 1;
 
-    static constexpr int LeadingZeros(uint16_t v) { return __lzcnt16(v); }
+    static int LeadingZeros(uint16_t v) { return __lzcnt16(v); }
 };
 
 template<>
@@ -78,7 +95,7 @@ struct ContainsType<uint32_t>
     static constexpr type base = 1LL << 32;
     static constexpr type mask = base - 1;
 
-    static constexpr int LeadingZeros(uint32_t v) { return __lzcnt(v); }
+    static int LeadingZeros(uint32_t v) { return __lzcnt(v); }
 };
 
 template<typename WORD>
@@ -87,7 +104,7 @@ bool MultiwordDivide(
     WORD* dividend, WORD* divisor,
     int dividendSize, int divisorSize)
 {
-    using mathType = ContainsType<WORD>::type;
+    using mathType = typename ContainsType<WORD>::type;
     const mathType b = ContainsType<WORD>::base;
     const mathType WORD_MASK = ContainsType<WORD>::mask;
     

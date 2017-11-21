@@ -109,7 +109,7 @@ void GCC()
     #if defined(__MINGW64__)
     SHOW(__MINGW64__);
     #endif
-    #if defined(__GNUC__)
+    #if defined(__CYGWIN__)
     SHOW(__CYGWIN__);
     #endif
 }

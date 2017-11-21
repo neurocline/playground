@@ -4,8 +4,12 @@
 
 #include <cassert>
 
+#ifdef _MSC_VER
 #include <Windows.h>
 #include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
 
 bool LongDivide(
     uint16_t* q /*quotient*/, uint16_t* r /*remainder*/,

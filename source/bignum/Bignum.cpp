@@ -4,7 +4,24 @@
 #include <cstring>
 
 // Visual Studio specific
+#ifdef _MSC_VER
 #include <intrin.h>
+#elif 1
+#include <x86intrin.h>
+#define __lzcnt(X) __lzcnt32(X)
+#elif !defined (MYLZCNT)
+#define MYLZCNT
+static __inline__ unsigned short
+__lzcnt16(unsigned short __X)
+{
+    return __X ? __builtin_clzs(__X) : 16;
+}
+static __inline__ unsigned int
+__lzcnt(unsigned int __X)
+{
+    return __X ? __builtin_clz(__X) : 32;
+}
+#endif
 
 // Note - Intel has a 128-bit by 64-bit division instruction, find a way
 // to use this? Probably require separate assembly language file.
@@ -37,8 +54,8 @@ bool LongDivide(
 
     // Sanity checks
     if (m < n || n <= 0 || v[n-1] == 0
-        || n > sizeof(vn)/sizeof(vn[0])
-        || m+1 > sizeof(un)/sizeof(un[0]))
+        || (unsigned long)(n) > sizeof(vn)/sizeof(vn[0])
+        || (unsigned long)(m+1) > sizeof(un)/sizeof(un[0]))
         return false; // invalid parameters
 
     // Do we have a single-digit divisor? If so, we can do a very simplified
