@@ -1,5 +1,7 @@
 // Bignum.h
 
+#if 0
+
 #pragma once
 
 #include <stdint.h>
@@ -220,3 +222,6 @@ bool MultiwordDivide(
 
     return true;
 }
+
+#endif
+

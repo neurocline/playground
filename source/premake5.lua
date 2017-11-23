@@ -18,8 +18,13 @@ workspace "playground"
     -- should this be done at the workspace level or the project level? If one library
     -- is using lzcnt intrinsics, we expect all of them to be compatible with that.
     -- is this a link issue?
-    filter { "action:xcode*" }
-      buildoptions { "-mlzcnt" }
+    filter { "action:xcode* or toolset:clang*" }
+        buildoptions { "-mlzcnt" }
+
+newoption {
+   trigger     = "with-opengl",
+   description = "Force the use of OpenGL for rendering, regardless of platform"
+}
 
 include "bignum"
 include "compat"

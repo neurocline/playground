@@ -6,6 +6,21 @@ This is tidbits towards a complete Premake 5 manual.
 Introductory Notes
 ==================
 
+Here are the three most important things for you to keep in mind.
+
+1. Premake is not a build system, it generates makefiles for build systems.
+2. Premake scripts are Lua code and executed as Lua programs.
+3. Your Premake scripts are declarative code, not procedural code.
+
+Premake is a standalone executable that does source-to-source-transitions in a self-contained
+fashion. This means that you can actually generate makefiles for any platform and any
+system on a single system; you could generate Xcode projects from a Windows machine, for
+example, or Visual Studio projects from a Linux machine. Since part of the reason for Premake
+is as a cross-platform build system generator, this isn't just academic, but lets a single
+user generate projects that will probably work, without needing multiple machines to test on.
+This also makes it easier to test out your Premake scripts, since you can investigate the
+output by hand.
+
 Premake is a power-user tool. It will do its best to tell you about syntactic errors in
 project scripts, but most semantic errors will simply result in nothing being generated
 for that section. Filters and files sections, when they fail to match anything, will just
@@ -20,7 +35,35 @@ Project structure
 =================
 
 Premake expects Lua scripts of a specific form to be presented to the `premake` tool.
-The default name for the top-level script is `premake5.lua`.
+The default name for the top-level script is `premake5.lua` in the current working
+directory; alternatively, you can pass the path to the top-level script on the premake
+command-line with `-file <path>`.
+
+All your Premake scripts combined are executed as a single function with the Lua call
+`dofile(<user_script>)`. Premake itself is partially Lua code that sets up a default
+environment, calls your Premake script, then uses the fully-specified environment to
+generate makefiles.
+
+Premake itself is customizable to an almost arbitrary degree; since Premake operations
+are defined by Lua code, and you can override or introduce new behavior as you desire,
+you could even ignore existing Premake behavior in favor of a new system. Just like with
+all open-ended systems, it's best to stick to existing metaphors and not replace them,
+or even to extend them more than absolutely necessary.
+
+Premake has two existing makefile constructs: the `workspace`, and the `project`. Each
+workspace is the parent for some number of projects. You can have multiple workspaces in
+a single invocation of Premake; this is atypical, but some workflows may find the need
+for multiple workspaces generated all at once.
+
+At generation time, workspaces and projects turn into build system artifacts. In the major
+build systems, these break down as follows:
+
+| Premake | Visual Studio | Xcode | make |
+| ------- | ------------- | ----- | ---- |
+| `workspace` | `*.sln` | `*.xcworkspace` | top-level `Makefile` |
+| `project` | `*.vcxproj` | `*.xcproj` | project `Makefile` |
+
+There are third-party generators for CMake, Ninja, and several other build systems.
 
 Include Paths
 =============
@@ -286,9 +329,27 @@ filter
 
 Premake is a declarative system, even though it looks like a procedural system. When you
 declare a filter, it stays in existence until another filter is declared, or a new project
-or workspace is entered. At the entry to a workspace or project, the null filter `filter {}` is active.
+or workspace is entered. A filter is used to restrict following declarations to a subset of
+the Premake permutations.
 
-You can filter on identifiers from one or more fields, which are:
+Only one filter can be in operation at a time. There is a single filter that you change the
+value of; these aren't nested or localized in any way, although you get reasonable behavior
+due to the fact that the filter is reset when you enter a scope.
+
+The null filter is `filter {}`, which means "filter nothing"; the null filter is active
+at the entry to a workspace or project section.
+
+Note that the filter syntax isn't a clean syntax - it evolved a bit at a time, and is not
+a general-case propositional calculus. Some fiddling may
+
+A filter is a list of zero or more items; zero items is the null filter. Each item is a
+string describing a pattern. A list of items has an implicit `and` between each item; the
+filter `filter {"configurations:Debug", "toolset:msvc*"}` is read as "the subset that is
+the `Debug` configuration and any toolset starting with `msvc`".
+
+Each item has a prefix and a pattern, separated by `:`. In `filter {"configurations:Debug"}`,
+`configurations` is the prefix. The prefix selects a Premake field (think object or variable),\
+which is one of:
 
 - `action`
 - `architecture`
@@ -300,6 +361,24 @@ You can filter on identifiers from one or more fields, which are:
 - `platforms`
 - `system`
 - `toolset`
+
+The pattern selects one or more values of the field. The pattern can be a full text-match,
+a wildcard match using `*` or `**` wildcards (the latter relevant for the `files` field),
+and it can contain some boolean operators.
+
+- `filter {"configurations:Debug or Release"}` means "the Debug or Release configuration"
+- `filter {"configurations:not Debug"}` means "any configuration except the Debug configuration"
+- `filter {"toolset:msvc*"}` means "any toolset starting with the characters 'msvc'"
+
+Pattern is slightly complicated by the fact that you can add a field to a sub-pattern.
+
+- `filter "system:windows or language:C#"` means "the Windows system or the C# language"
+
+There is old behavior that lets the prefix be optional - if the prefix is omitted, this means
+the `configurations` field. Note specifically that the field omitted inside a pattern does NOT
+mean `configurations` field, it means "use the most recently specified field". This probably
+means that the filter parsing grammar starts out with the default field being `configurations`
+and sets it each time a field is specified.
 
 ### action
 
@@ -319,6 +398,27 @@ project file for Visual Studio and Xcode are more tightly tied together.
 - `vs2015`
 - `vs2017` - Generate Visual Studio 2017 project files
 - `xcode4` - Generate Xcode 4 project files
+
+The `action` is global to the entire Premake invocation, comes from the command-line, and
+is a string stored in the `_ACTION` global variable.
+
+Note that since actions can be added via addons, it is not possible to list every possible
+action. It would be nice if `premake --verbose` would show actions as defined in the scope
+of the Premake script being processed.
+
+Note that it's typical for `clean` to be overriden by a Premake script, since Premake itself
+doesn't track what it wrote in a previous operation, nor can it know about files created by
+build systems themselves.
+
+### architecture
+
+### options
+
+The `options` field gives you access to command-line options. These are stored as a table
+in the `_OPTIONS` global variable. As such, there are no default values for options; these
+are defined by your script with the `newoption` function.
+
+[Premake5 wiki: Command Line Arguments](https://github.com/premake/premake-core/wiki/Command-Line-Arguments)
 
 flags
 -----
@@ -422,3 +522,14 @@ Premake expects you to know some Lua.
 - [Lua 5.3 Reference Manual](https://www.lua.org/manual/5.3/)
 - [Programming in Lua (5.0)](https://www.lua.org/pil/contents.html)
 - [How to dump a table to console?](https://stackoverflow.com/questions/9168058/how-to-dump-a-table-to-console)
+
+[Microsoft/vswhere](https://github.com/Microsoft/vswhere)
+
+[How to create Conan packages with Premake?](https://github.com/conan-io/conan/issues/1559)
+
+Other build system generators
+
+- [TurkeyMan/premake-cmake](https://github.com/TurkeyMan/premake-cmake) for Premake4, doesn't work in Premake5
+- [Geequlim/premake-modules](https://github.com/Geequlim/premake-modules)
+- [jimon/premake-ninja](https://github.com/jimon/premake-ninja)
+- [Ninja support #141](https://github.com/premake/premake-core/issues/141)

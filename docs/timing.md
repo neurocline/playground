@@ -197,7 +197,7 @@ number into a scalar multiplier.
 ```
 mach_timebase_info_data_t info;
 mach_timebase_info(&info);
-double sec_per_clock = ((double) info.numer / info.denom) / 1000000000.0;
+double sec_per_clock = ((double) info.numer / info.denom) / 1000000000.0; // wrong! overflow!
 
 uint64_t start = mach_absolute_time();
 ... code being measured ...
@@ -316,3 +316,13 @@ at 0.46 nanoseconds. Something to think about.
 - https://blog.habets.se/2010/09/gettimeofday-should-never-be-used-to-measure-time.html
 - https://github.com/ThomasHabets/monotonic_clock/blob/master/src/monotonic_mach.c
 - http://code-factor.blogspot.com/2009/11/monotonic-timers.html
+
+[GCC intrinsics](https://gcc.gnu.org/onlinedocs/gcc/C-Extensions.html)
+
+[Clang intrinsics]()
+
+[Visual Studio #pragma intrinsic](https://msdn.microsoft.com/en-us/library/tzkfha43.aspx)
+
+[Visual Studio compiler intrinsics](https://msdn.microsoft.com/en-us/library/26td21ds.aspx)
+
+[clock cycle count wth GCC](https://stackoverflow.com/questions/9887839/clock-cycle-count-wth-gcc)

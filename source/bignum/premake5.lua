@@ -5,7 +5,7 @@ project "bignum"
     kind "ConsoleApp"
     --language "C++"
     --cppdialect "C++14"
-    files { "main.cpp", "Bignum.cpp", "Bignum.h" }
+    files { "**.cpp", "**.h" }
     --warnings "Extra"
 
     --filter { "action:vs*" }

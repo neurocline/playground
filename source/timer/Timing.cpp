@@ -2,6 +2,8 @@
 
 #include "Timing.h"
 
+#if 0
+
 #include <cassert>
 
 #ifdef _MSC_VER
@@ -299,3 +301,5 @@ void test()
     }
 }
 #endif
+#endif
+

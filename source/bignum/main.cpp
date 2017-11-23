@@ -1,5 +1,40 @@
 // main.cpp
 
+#include "Num.h"
+
+#include <assert.h>
+
+int main(int /*argc*/, char** /*argv*/)
+{
+    Num divisor{0LL};
+    Num dividend{0LL};
+
+    for (int i = 0; i < 100; i++)
+    {
+        divisor = divisor + 11;
+        for (int j = 0; j < 100; j++)
+        {
+            dividend = dividend + 29;
+            //Num temp = dividend / divisor;
+        }
+    }
+
+    long long expect = 100*100*29;
+    long long actual = dividend.to_int64();
+    assert(expect == actual);
+
+    Num qb{0x12345678L};
+    uint32_t v = qb[0];
+    assert(v == 0x12345678L);
+    assert(qb.len() < 2 || qb[1] == 0);
+    Num qq{0x1122334455667788LL};
+    assert(qq[0] == 0x55667788L);
+    assert(qq[1] == 0x11223344L);
+    return 0;
+}
+
+#if 0
+
 #include "Bignum.h"
 
 #include <cassert>
@@ -106,3 +141,6 @@ int main(int /*argc*/, char** /*argv*/)
 
 // 676201909250
 // 676201909253
+
+#endif //
+

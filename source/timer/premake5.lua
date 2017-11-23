@@ -5,7 +5,7 @@ project "timer"
     kind "ConsoleApp"
     --language "C++"
     --cppdialect "C++17"
-    files { "main.cpp", "Timing.cpp", "Timing.h" }
+    files { "**.cpp", "**.h" }
     --warnings "Extra"
 
     --filter { "toolset:msc*" }

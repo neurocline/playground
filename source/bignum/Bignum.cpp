@@ -1,5 +1,7 @@
 // Bignum.cpp
 
+#if 0
+
 #include <stdint.h>
 #include <cstring>
 
@@ -277,3 +279,6 @@ void TestBignum()
     b5[2] = b5[1] + 1; // testing operator[] assign
     assert(b5[1] + 1 == b5[2]);
 }
+
+#endif
+
