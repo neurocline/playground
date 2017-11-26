@@ -29,4 +29,5 @@ newoption {
 include "bignum"
 include "compat"
 include "file"
+include "operators"
 include "timer"

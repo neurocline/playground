@@ -2,6 +2,46 @@
 
 #include "Num.h"
 
+#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
+#include "../catch.hpp"
+
+TEST_CASE("Num - construction", "[Num]")
+{
+    Num empty;
+    REQUIRE(empty.len() == 0);
+
+    Num twoe32m1{(1LL<<32)-1};
+    REQUIRE(reinterpret_cast<uint32_t*>(twoe32m1.raw)[0] == 0x0000'0001);
+    REQUIRE(twoe32m1[0] == 0xFFFF'FFFF);
+    REQUIRE(twoe32m1.to_int64() == 4294967295);
+
+    Num twoe63m1{(1LL<<63)-1};
+    REQUIRE(twoe63m1.to_int64() == 0x7FFF'FFFF'FFFF'FFFFLL);
+
+    Num neg1{-1};
+    REQUIRE(reinterpret_cast<uint32_t*>(neg1.raw)[0] == 0xFFFF'0001);
+    REQUIRE(neg1[0] == 0x0000'0001);
+    REQUIRE(neg1.to_int64() == -1);
+}
+
+TEST_CASE("Num - addition", "[Num]")
+{
+    Num one{1};
+    Num two{2};
+    Num three = one + two;
+    REQUIRE(three.to_int64() == 3);
+
+    Num accum; // ugg, fix "ambiguous Num{0}" issue
+    Num delta{1021};
+    for (int i = 0; i < 1000; i++)
+        accum = accum + delta;
+    REQUIRE(accum.to_int64() == 1021*1000);
+}
+
+#if 0
+
+#include "Num.h"
+
 #include <assert.h>
 
 int main(int /*argc*/, char** /*argv*/)
@@ -15,7 +55,7 @@ int main(int /*argc*/, char** /*argv*/)
         for (int j = 0; j < 100; j++)
         {
             dividend = dividend + 29;
-            //Num temp = dividend / divisor;
+            // Num temp = dividend / divisor;
         }
     }
 
@@ -143,4 +183,6 @@ int main(int /*argc*/, char** /*argv*/)
 // 676201909253
 
 #endif //
+
+#endif
 

@@ -81,8 +81,11 @@ public:
     // Size of current number in bytes
     int len();
 
-private:
-	byte raw[16];
-	static_assert(sizeof(raw) == 16, "");
+//private:
+	byte raw[32];
+	static_assert(sizeof(raw) == 32, "");
 };
 
+// TBD can we create a make_Num helper that creates a large Num with
+// contiguous storage above and beyond the default? Can we create
+// different-sized local Num, maybe with a template parameter?

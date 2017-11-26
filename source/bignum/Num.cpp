@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+// Small Object Optimization
+// TBD add dynamic data sizing
 struct NumData
 {
     int16_t len;
@@ -14,6 +16,7 @@ struct NumData
 // Default constructor - create empty Num (has a value of zero)
 Num::Num()
 {
+    static_assert(sizeof(NumData) <= sizeof(Num::raw), "NumData too big");
     NumData& d{*reinterpret_cast<NumData*>(raw)};
     d.len = 0;
     d.sign = 0;
@@ -31,7 +34,7 @@ Num::Num(const Num& other) noexcept
         d.data[i] = o.data[i];
 }
 
-// Copy assignment operator (needs to free existing lhs)
+// Copy assignment operator (needs to free existing lhs data first)
 Num& Num::operator=(const Num& other) noexcept
 {
     if (this != &other)
@@ -95,7 +98,7 @@ uint64_t Num::to_uint64() const
 int64_t Num::to_int64() const
 {
     uint64_t uv = to_uint64();
-    uv = (uv >> 1) << 1; // lop off high-order bit
+    uv = (uv << 1) >> 1; // lop off high-order bit
 
     const NumData& d{*reinterpret_cast<const NumData*>(raw)};
     long long v = d.sign ? -(long long)uv : uv;
