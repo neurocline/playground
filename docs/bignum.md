@@ -42,3 +42,4 @@ Misc
 - [Infint](https://sercantutar.github.io/infint/)
 - [Huge Long Numbers](https://github.com/daidodo/huge-long-number)
 - [A Class for Representing Large Numbers](http://www.drdobbs.com/a-class-for-representing-large-integers/184403247)
+- [Multiprecision arithmetic](https://cryptojedi.org/peter/data/space-20141020.pdf)

@@ -14,28 +14,76 @@ TEST_CASE("Num - construction", "[Num]")
     REQUIRE(reinterpret_cast<uint32_t*>(twoe32m1.raw)[0] == 0x0000'0001);
     REQUIRE(twoe32m1[0] == 0xFFFF'FFFF);
     REQUIRE(twoe32m1.to_int64() == 4294967295);
+    REQUIRE(twoe32m1.len() == 1);
 
-    Num twoe63m1{(1LL<<63)-1};
+    Num twoe63m1{(1ULL<<63)-1LL};
     REQUIRE(twoe63m1.to_int64() == 0x7FFF'FFFF'FFFF'FFFFLL);
+    REQUIRE(twoe63m1.len() == 2);
 
     Num neg1{-1};
     REQUIRE(reinterpret_cast<uint32_t*>(neg1.raw)[0] == 0xFFFF'0001);
     REQUIRE(neg1[0] == 0x0000'0001);
     REQUIRE(neg1.to_int64() == -1);
+    REQUIRE(neg1.len() == 1);
+}
+
+TEST_CASE("Num - util", "[Num]")
+{
+    Num zero{0LL};
+    REQUIRE(zero.len() == 0);
+
+    Num pos{1};
+    REQUIRE(pos.len() == 1);
+    REQUIRE(pos.sign() >= 0);
+
+    Num neg{-1};
+    REQUIRE(neg.len() == 1);
+    REQUIRE(neg.sign() < 0);
 }
 
 TEST_CASE("Num - addition", "[Num]")
 {
-    Num one{1};
-    Num two{2};
-    Num three = one + two;
-    REQUIRE(three.to_int64() == 3);
+    // Start out with a nearly trivial number
+    Num v{1};
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 1);
 
-    Num accum; // ugg, fix "ambiguous Num{0}" issue
-    Num delta{1021};
-    for (int i = 0; i < 1000; i++)
-        accum = accum + delta;
-    REQUIRE(accum.to_int64() == 1021*1000);
+    // Double it
+    v += v;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 2);
+
+    // Grow the number to 2^31, which still fits in a single digit
+    for (int i = 0; i < 30; i++)
+        v += v;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 0x8000'0000L);
+
+    // Grow the number to 2^32, which spills over into a second digit
+    v += v;
+    REQUIRE(v.len() == 2);
+    REQUIRE(v[0] == 0);
+    REQUIRE(v[1] == 1);
+
+    // Grow the number to 2^63 and then 2^64
+    for (int i = 0; i < 31; i++)
+        v += v;
+    REQUIRE(v.len() == 2);
+    REQUIRE(v[0] == 0);
+    REQUIRE(v[1] == 0x8000'0000L);
+
+    v += v;
+    REQUIRE(v.len() == 3);
+    REQUIRE(v[0] == 0);
+    REQUIRE(v[1] == 0);
+    REQUIRE(v[2] == 1);
+
+    // Now grow it to 2^223, which is the largest power of 2
+    // we can fit in our SOO static data
+    for (int i = 0; i < 159; i++)
+        v += v;
+    REQUIRE(v.len() == 7);
+    REQUIRE(v[6] == 0x8000'0000L);
 }
 
 #if 0

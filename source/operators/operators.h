@@ -14,7 +14,6 @@
 class SimpleOp
 {
 public:
-    using T = SimpleOp;
 
     // -----------------------------------------------------------------------
 
@@ -25,12 +24,13 @@ public:
     ~SimpleOp() noexcept;
 
     // Copy constructor
-    SimpleOp(const T& rhs);
+    SimpleOp(const SimpleOp& rhs);
 
     // Move constructor
-    SimpleOp(T&& rhs) noexcept;
+    SimpleOp(SimpleOp&& rhs) noexcept;
 
     // -----------------------------------------------------------------------
+    using T = SimpleOp;
 
     // Copy assignment operators
     T& operator=(const T& rhs);

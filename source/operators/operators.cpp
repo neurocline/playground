@@ -30,7 +30,7 @@ SimpleOp::SimpleOp(const SimpleOp& rhs)
 }
 
 // Move constructor
-SimpleOp::SimpleOp(T&& rhs) noexcept
+SimpleOp::SimpleOp(SimpleOp&& rhs) noexcept
 {
     std::cout << "SimpleOp move constructor\n";
     value = rhs.value;

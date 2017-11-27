@@ -1,4 +1,7 @@
+// ======================================================================================
 // Num.h
+// - arbitrary-precision numbers with basic operator support
+// ======================================================================================
 
 #pragma once
 
@@ -6,8 +9,8 @@
 
 // Get definition of std::byte
 // - in clang/libc++ as of 5.0
+#if defined(_MSVC_LANG) && _MSVC_LANG > 201402
 // - in Visual Studio as of VS 2017 15.3 and /std:c++17
-#if 0
 #include <cstddef>
 // Otherwise, create it
 #else
@@ -17,7 +20,10 @@ namespace std {
 #endif
 // this probably doesn't work because of Windows Kit defining byte
 // c:\program files (x86)\windows kits\8.0\include\shared\rpcndr.h(164)
+// Also, using at global scope is bad behavior.
 using byte = std::byte;
+
+// ======================================================================================
 
 class Num
 {
@@ -78,14 +84,66 @@ public:
     uint64_t to_uint64() const; // modulo 2^64
     int64_t to_int64() const;  // modulo 2^63
 
+    // Convert string to Num
+    bool from_cstring(char const* p, int base=10);
+
+    // Convert Num to string
+    int to_cstring(char* p, int len, int base=10);
+
     // Size of current number in bytes
-    int len();
+    int len() const;
+
+    // Sign of number
+    int sign() const;
 
 //private:
+    void grow(int16_t amt = 1);
+    void shrink();
+    Num& addto(const Num& rhs);
+    Num& subfrom(const Num& rhs);
+    int magcmp(const Num& rhs);
+
 	byte raw[32];
-	static_assert(sizeof(raw) == 32, "");
+    // static_assert(sizeof(raw) == 32, ""); // this is a compile error in VS2017 15.4.1
 };
+
+static_assert(sizeof(Num::raw) == 32, "");
 
 // TBD can we create a make_Num helper that creates a large Num with
 // contiguous storage above and beyond the default? Can we create
 // different-sized local Num, maybe with a template parameter?
+
+// --------------------------------------------------------------------------------------
+// Internal Num definition
+
+struct NumData
+{
+    int16_t len;
+    int16_t sign;
+    uint32_t data[7];
+};
+static_assert(sizeof(NumData) <= sizeof(Num::raw), "NumData misdefined");
+
+// TBD add dynamic data sizing
+// TBD Small Object Optimization
+
+// For small object optimization, there are several sizes to consider
+// 16 bytes: 1 bit small-object, 1 bit sign, 6 bits length, 15 bytes number
+// 24 bytes: 1 bit small-object, 1 bit sign, 6 bits length, 23 bytes number
+// 32 bytes 1 bit small-object, 1 bit sign, 6 bits length, 31 bytes number
+//
+// Note that a pointer is 8 bytes on 64-bit architecture. We probably want to think
+// in units of pointer-size, so that means 16-bytes is the smallest possible.
+// 16 bytes = 120 bits of number, 24 bytes = 184 bits of number, 32 bytes = 248 bits of number
+// 2^120 = 1.32e36 (approximately the range of 32-bit float)
+// 2^184 = 2.45e55
+// 2^248 = 4.52e74
+// 64-bit float has range 1e-308 to 1e308 but only 53 bits of precision
+// 100! = 9.3e157
+
+//
+// Math terms
+// addition: augend + addend
+// subtraction: minuend - subtrahend
+// multiply: multiplier × multiplicand
+// division: dividend ÷ divisor

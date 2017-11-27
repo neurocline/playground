@@ -1,22 +1,33 @@
+// ======================================================================================
 // Num.cpp
+// - arbitrary-precision numbers with basic operator support
+//
+// Basic Num support - constructors/destructors, and serialization
+// ======================================================================================
 
 #include "Num.h"
 
-#include <stdint.h>
+#include <cassert>
+#include <cstdint>
 
-// Small Object Optimization
-// TBD add dynamic data sizing
-struct NumData
-{
-    int16_t len;
-    int16_t sign;
-    uint32_t data[7];
-};
+// --------------------------------------------------------------------------------------
+
+//#define VERBOSE_NUM
+#ifdef VERBOSE_NUM
+#include <iostream>
+#define DIAG(TAG) std::cout << "Num " TAG "\n"
+#else
+#define DIAG(TAG)
+#endif
+
+// ======================================================================================
+// Constructors
+// ======================================================================================
 
 // Default constructor - create empty Num (has a value of zero)
 Num::Num()
 {
-    static_assert(sizeof(NumData) <= sizeof(Num::raw), "NumData too big");
+    DIAG("default constructor");
     NumData& d{*reinterpret_cast<NumData*>(raw)};
     d.len = 0;
     d.sign = 0;
@@ -25,6 +36,7 @@ Num::Num()
 // Copy constructor (only used on new unconstructed object)
 Num::Num(const Num& other) noexcept
 {
+    DIAG("copy constructor");
     NumData& d{*reinterpret_cast<NumData*>(raw)};
     const NumData& o{*reinterpret_cast<const NumData*>(other.raw)};
 
@@ -37,6 +49,7 @@ Num::Num(const Num& other) noexcept
 // Copy assignment operator (needs to free existing lhs data first)
 Num& Num::operator=(const Num& other) noexcept
 {
+    DIAG("copy assignment operator");
     if (this != &other)
     {
         // Free existing Num data
@@ -106,60 +119,61 @@ int64_t Num::to_int64() const
     return v;
 }
 
-// Add a single 'digit' to a Num
-Num Num::operator+(const uint32_t& digit)
-{
-    Num temp{*this};
-    NumData& d{*reinterpret_cast<NumData*>(temp.raw)};
-
-    // Add through until no carry
-    long long carry = digit;
-    for (int i = 0; carry != 0; i++)
-    {
-        if (d.len == i)
-        {
-            d.len += 1;
-            d.data[i] = 0;
-        }
-
-        carry = d.data[i] + carry;
-        d.data[i] = (uint32_t) carry;
-        carry >>= 32;
-    }
-
-    return temp;
-}
-
-// Add two Nums together
-Num Num::operator+(const Num& rhs)
+// Add a new initialized digit to Num
+void Num::grow(int16_t amt)
 {
     NumData& d{*reinterpret_cast<NumData*>(raw)};
-    const NumData& o{*reinterpret_cast<const NumData*>(rhs.raw)};
-
-    Num temp;
-    NumData& t{*reinterpret_cast<NumData*>(temp.raw)};
-
-    // TBD break this into multiple pieces so we don't need to check length
-    // on every data fetch from this and rhs
-    long long carry = 0;
-    int N = d.len > o.len ? d.len : o.len;
-    for (int i = 0; i < N || carry != 0; i++)
-    {
-        carry = carry + (i < d.len ? d.data[i] : 0) + (i < o.len ? o.data[i] : 0);
-        t.len += 1;
-        t.data[i] = (uint32_t) carry;
-        carry >>= 32;
-    }
-
-    return temp;
+    // TBD real growing
+    assert(d.len + amt <= sizeof(d.data)/sizeof(d.data[0]));
+    for (int i = d.len; i < d.len + amt; i++)
+        d.data[i] = 0;
+    d.len += amt;
 }
 
-int Num::len()
+// Remove the most significant digit from Num (assumed to be zero)
+void Num::shrink()
+{
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+    // TBD real shrinking
+    d.len -= 1;
+    assert(d.len >= 0);
+}
+
+// Num <=> Num
+//   -1: Num < Num
+//    0: Num == Num
+//   +1: Num > Num
+int Num::magcmp(const Num& rhs)
+{
+    // Trivially, if the numbers are different lengths, the longer number is
+    // greater than the shorter number
+    if (len() != rhs.len())
+        return len() > rhs.len() ? 1 : -1;
+
+    // Compare magnitude digits from greater to lesser
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+    const NumData& s{*reinterpret_cast<const NumData*>(rhs.raw)};
+    for (int i = d.len - 1; i >= 0; --i)
+    {
+        if (d.data[i] != s.data[i])
+            return d.data[i] > s.data[i] ? 1 : -1;
+    }
+
+    // Numbers have the same magnitude
+    return 0;
+}
+
+int Num::len() const
 {
     const NumData& d{*reinterpret_cast<const NumData*>(raw)};
     return d.len;
 }
 
+int Num::sign() const
+{
+    const NumData& d{*reinterpret_cast<const NumData*>(raw)};
+    return d.sign;
+}
 
 // Read from underlying data array
 uint32_t Num::operator[](int i) const

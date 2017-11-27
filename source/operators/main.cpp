@@ -2,7 +2,18 @@
 
 #include "operators.h"
 
+void SimpleOps();
+void destructors();
+
 int main(int /*argc*/, char** /*argv*/)
+{
+    SimpleOps();
+    destructors();
+
+	return 0;
+}
+
+void SimpleOps()
 {
     SimpleOp one; // SimpleOp default constructor
     one = 1; // SimpleOp copy-assignment operator from int
@@ -26,11 +37,34 @@ int main(int /*argc*/, char** /*argv*/)
     three = one / two;
     three = two % one;
 
-    if (three) ; // SimpleOp operator bool
+    if (three) 0; // SimpleOp operator bool
     three = -two; // SimpleOp operator- (unary)
     three = +two; // SimpleOp operator+ (unary)
-    if (!two) ; // SimpleOp operator! (unary)
+    if (!two) 0; // SimpleOp operator! (unary)
     three = ~two; // SimpleOp operator! (unary)
+}
 
-	return 0;
+
+class A
+{
+public:
+    virtual ~A() = 0;
+};
+A::~A()
+{
+    std::cout << "~A()\n";
+}
+
+class B: public A
+{
+public:
+    ~B() { std::cout << "~B()\n"; }
+};
+
+void destructors()
+{
+    B b;
+
+    A* a = new B();
+    delete a;
 }
