@@ -131,12 +131,16 @@ void Num::grow(int16_t amt)
 }
 
 // Remove the most significant digit from Num (assumed to be zero)
-void Num::shrink()
+void Num::shrink(int16_t amt)
 {
     NumData& d{*reinterpret_cast<NumData*>(raw)};
     // TBD real shrinking
-    d.len -= 1;
-    assert(d.len >= 0);
+    assert(d.len - amt >= 0);
+    d.len -= amt;
+
+    // if we made it zero-size, make the sign positive as a convenience
+    if (d.len == 0)
+        d.sign = 0;
 }
 
 // Num <=> Num
@@ -187,6 +191,52 @@ uint32_t& Num::operator [](int i)
     NumData& d{*reinterpret_cast<NumData*>(raw)};
     return d.data[i];
 }
+
+#if 0
+int Num::to_cstring(char* p, int len, int base)
+{
+    // max decimal digits per Num digit. Obviously this only works for base 10
+    const auto per_digit = 9.63295986125;
+    assert(base == 10);
+
+    const NumData& d{*reinterpret_cast<const NumData*>(raw)};
+
+    // One approach is to exactly compute the space for the conversion, and
+    // then do it in place. The other is to start doing the conversion, and
+    // return an error with a guess for how much space is really required.
+
+    // calculate space needed for the conversion
+    double N = (d.sign < 0) ? 1.0 : 0.0; // space for leading '-' if negative
+    N += (d.len - 1) * per_digit; // space for all except first digit
+    auto F = d.data[d.len - 1];
+    while (F > 10)
+    {
+        N += 1.0;
+        F /= 10;
+    }
+    int n = int(N) + 1; // round up (assume we will never have exactly integral places)
+
+    if (n > len)
+        return -n;
+
+    // Now convert the number
+    p[--n] = 0;
+    Num t{*this};
+    Num B{base};
+    Num quotient;
+    Num remainder;
+
+    while (quotient.len() != 0)
+    {
+        assert(n > 0);
+        divmod(B, quotient, remainder);
+        p[--n] = '0' + (char) remainder.to_int64(); // replace with real base conversion
+        *this = quotient; // replace with pointer swap
+    }
+
+    return 0;
+}
+#endif
 
 // TBD
 // - use std::copy to copy arrays

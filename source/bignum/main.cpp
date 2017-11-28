@@ -84,6 +84,122 @@ TEST_CASE("Num - addition", "[Num]")
         v += v;
     REQUIRE(v.len() == 7);
     REQUIRE(v[6] == 0x8000'0000L);
+
+    // Add positive and negative numbers together
+    Num vp{100};
+    Num vn{-100};
+    v = vp + vn;
+    REQUIRE(v.len() == 0);
+    REQUIRE(v.sign() >= 0);
+
+    v = vn + vp;
+    REQUIRE(v.len() == 0);
+    REQUIRE(v.sign() >= 0);
+
+    vp = 101;
+    v = vp + vn;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v.sign() >= 0);
+    REQUIRE(v[0] == 1);
+
+    vn = -102;
+    v = vp + vn;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v.sign() < 0);
+    REQUIRE(v[0] == 1);
+
+    v = vn + vn;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v.sign() < 0);
+    REQUIRE(v[0] == 204);
+}
+
+TEST_CASE("Num - subtraction", "[Num]")
+{
+    Num v;
+    Num v1;
+    Num v2;
+
+    // subtract positive and negative numbers
+    v1 = 1;
+    v2 = -1;
+    v = v1 - v2;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v.sign() >= 0);
+    REQUIRE(v[0] == 2);
+
+    v2 = 1;
+    v = v1 - v2;
+    REQUIRE(v.len() == 0);
+    REQUIRE(v.sign() >= 0);
+
+    v1 = -1;
+    v = v1 - v2;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v.sign() < 0);
+    REQUIRE(v[0] == 2);
+
+    v2 = -1;
+    v = v1 - v2;
+    REQUIRE(v.len() == 0);
+    REQUIRE(v.sign() >= 0);
+}
+
+TEST_CASE("Low-level divide", "[Num]")
+{
+    uint32_t dividend[4];
+    uint32_t divisor[4];
+    uint32_t quotient[4];
+    uint32_t remainder[4];
+
+    dividend[0] = 11;
+    divisor[0] = 2;
+    int m = 1;
+    int n = 1;
+
+    bool ok = MultiwordDivide<uint32_t>(quotient, remainder, dividend, divisor, m, n);
+    REQUIRE(ok);
+    REQUIRE(quotient[0] == 5);
+    REQUIRE(remainder[0] == 1);
+
+    dividend[0] = 0;
+    dividend[1] = 16;
+    divisor[0] = 1;
+    divisor[1] = 1;
+    m = 2;
+    n = 2;
+
+    ok = MultiwordDivide<uint32_t>(quotient, remainder, dividend, divisor, m, n);
+    REQUIRE(ok);
+    REQUIRE(quotient[0] == 15);
+    REQUIRE(remainder[0] == 0xFFFF'FFF1);
+}
+
+TEST_CASE("Num - division", "[Num]")
+{
+    Num v;
+    Num v1;
+    Num v2;
+
+    v1 = 32;
+    v2 = 16;
+    v = v1 / v2;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 2);
+
+    v1 = 100;
+    v2 = 3;
+    v = v1 / v2;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 33);
+
+#if 0
+    v1 = Num{1'000'000'000'000LL} * Num{1'000'000'000'000LL};
+    v2 = Num{1'000'000'000} * Num{1'000'000'000};
+    v = v1 / v2;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 1'000'000);
+#endif
 }
 
 #if 0

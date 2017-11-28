@@ -98,7 +98,7 @@ public:
 
 //private:
     void grow(int16_t amt = 1);
-    void shrink();
+    void shrink(int16_t amt = 1);
     Num& addto(const Num& rhs);
     Num& subfrom(const Num& rhs);
     int magcmp(const Num& rhs);
@@ -123,6 +123,12 @@ struct NumData
     uint32_t data[7];
 };
 static_assert(sizeof(NumData) <= sizeof(Num::raw), "NumData misdefined");
+
+template<typename WORD>
+bool MultiwordDivide(
+    WORD* quotient, WORD* remainder,
+    const WORD* dividend, const WORD* divisor,
+    int dividendSize, int divisorSize);
 
 // TBD add dynamic data sizing
 // TBD Small Object Optimization
