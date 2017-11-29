@@ -88,6 +88,42 @@ Num& Num::operator+=(const Num& rhs)
 
 // --------------------------------------------------------------------------------------
 
+// Num + digit
+// Add a single 'digit' to a Num
+Num Num::operator+(const uint32_t& digit)
+{
+    Num temp{*this};
+    return temp.operator+=(digit);
+}
+
+// Num += digit
+// Note that this is mainly a hack at the moment, since it assumes lhs is non-negative
+Num& Num::operator+=(const uint32_t& digit)
+{
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+
+    // Add through the Num; we can stop once we no longer have a carry
+    int i = 0;
+    long long carry = digit;
+    for (; i < d.len && carry != 0; i++)
+    {
+        carry = carry + d.data[i];
+        d.data[i] = (uint32_t) carry;
+        carry >>= 32;
+    }
+
+    // If we still have a carry, we need to grow the Num by a digit
+    if (carry != 0)
+    {
+        grow(1);
+        d.data[i] = (uint32_t) carry;
+    }
+
+    return *this;
+}
+
+// --------------------------------------------------------------------------------------
+
 Num& Num::addto(const Num& rhs)
 {
     NumData& d{*reinterpret_cast<NumData*>(raw)};
@@ -200,29 +236,6 @@ Num& Num::subfrom(const Num& rhs)
     return *this;
 }
 
-// --------------------------------------------------------------------------------------
-
-// Add a single 'digit' to a Num
-Num Num::operator+(const uint32_t& digit)
-{
-    Num temp{*this};
-    NumData& d{*reinterpret_cast<NumData*>(temp.raw)};
-
-    // Add through until no carry
-    long long carry = digit;
-    for (int i = 0; carry != 0; i++)
-    {
-        if (d.len == i)
-            grow(1);
-
-        carry = d.data[i] + carry;
-        d.data[i] = (uint32_t) carry;
-        carry >>= 32;
-    }
-
-    return temp;
-}
-
 // ======================================================================================
 // Subtraction
 //
@@ -281,4 +294,22 @@ Num& Num::operator-=(const Num& rhs)
     Num temp{*this};
     *this = rhs;
     return subfrom(temp);
+}
+
+// --------------------------------------------------------------------------------------
+
+// Num - digit
+// Subtract a single 'digit' from a Num
+Num Num::operator-(const uint32_t& digit)
+{
+    Num temp{*this};
+    return temp.operator-=(digit);
+}
+
+// Num -= digit
+Num& Num::operator-=(const uint32_t& digit)
+{
+    // for now, just cheat and do it the slow way, because we may not actually
+    // do this in the log run (subtracting signed vs unsigned is odd).
+    return operator-=(Num{digit});
 }

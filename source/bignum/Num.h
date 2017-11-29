@@ -99,9 +99,13 @@ public:
 //private:
     void grow(int16_t amt = 1);
     void shrink(int16_t amt = 1);
+    void resize(int16_t size);
+    void trim();
+
     Num& addto(const Num& rhs);
     Num& subfrom(const Num& rhs);
     int magcmp(const Num& rhs);
+    int magcmp(const uint32_t& digit);
 
 	byte raw[32];
     // static_assert(sizeof(raw) == 32, ""); // this is a compile error in VS2017 15.4.1
@@ -151,5 +155,5 @@ bool MultiwordDivide(
 // Math terms
 // addition: augend + addend
 // subtraction: minuend - subtrahend
-// multiply: multiplier × multiplicand
+// multiply: multiplicand × multiplier
 // division: dividend ÷ divisor

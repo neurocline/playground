@@ -5,6 +5,19 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "../catch.hpp"
 
+TEST_CASE("builtin math", "[C++]")
+{
+    uint16_t v16 = uint16_t(uint8_t(-1)) * uint16_t(uint8_t(-1));
+    REQUIRE(v16 == 0xFE01);
+    v16 += uint16_t(uint8_t(-1));
+    REQUIRE(v16 == 0xFF00);
+
+    uint32_t v32 = uint32_t(uint16_t(-1)) * uint32_t(uint16_t(-1));
+    REQUIRE(v32 == 0xFFFE'0001L);
+    uint64_t v64 = uint64_t(uint32_t(-1)) * uint64_t(uint32_t(-1));
+    REQUIRE(v64 == 0xFFFF'FFFE'0000'0001LL);
+}
+
 TEST_CASE("Num - construction", "[Num]")
 {
     Num empty;
@@ -200,6 +213,81 @@ TEST_CASE("Num - division", "[Num]")
     REQUIRE(v.len() == 1);
     REQUIRE(v[0] == 1'000'000);
 #endif
+}
+
+TEST_CASE("Num - multiplication", "[Num]")
+{
+    Num v;
+    Num v1;
+    Num v2;
+
+    v1 = 1;
+    v2 = 1;
+    v = v1 * v2;
+    REQUIRE(v.len() == 1);
+    REQUIRE(v[0] == 1);
+
+    v1 = 0xFFFF'FFFFL;
+    v2 = 0xFFFF'FFFFL;
+    v = v1 * v2;
+    REQUIRE(v.len() == 2);
+    REQUIRE(v[0] == 0x0000'0001L);
+    REQUIRE(v[1] == 0xFFFF'FFFEL);
+}
+
+TEST_CASE("Soak test", "[Num]")
+{
+    //uint64_t imax = uint64_t(0x7F00'0000'0000'0000LL);
+    uint64_t imax = 50000;
+    uint64_t iinc = 1;
+    uint64_t jinc = 1;
+
+    int status = 0;
+    for (uint64_t i = 0; i < imax; i += iinc)
+    {
+        for (uint64_t j = 0; j < imax; j += jinc)
+        {
+            Num I{(long long) i};
+            Num J{(long long) j};
+            Num K;
+
+            K = I + J;
+            if (i+j == 0)
+                REQUIRE(K.len() == 0);
+            else
+                REQUIRE(K[0] == i+j);
+
+            K = I - J;
+            if (i == j)
+                REQUIRE(K.len() == 0);
+            else if (i >= j)
+                REQUIRE(K[0] == i-j);
+            else
+                REQUIRE(K[0] == j-i);
+
+            K = I * J;
+            if (i*j == 0)
+                REQUIRE(K.len() == 0);
+            else
+                REQUIRE(K[0] == i*j);
+
+            if (j != 0)
+            {
+                K = I / J;
+                if (i/j == 0)
+                    REQUIRE(K.len() == 0);
+                else
+                    REQUIRE(K[0] == i/j);
+            }
+
+            status += 1;
+            if (status == 50000)
+            {
+                std::cout << i << "," << j << "\n";
+                status = 0;
+            }
+        }
+    }
 }
 
 #if 0

@@ -95,6 +95,10 @@ Num::Num(long long v)
     }
 }
 
+// ======================================================================================
+// Conversions
+// ======================================================================================
+
 // Convert a Num to an unsigned long long value (modulo 2^64)
 uint64_t Num::to_uint64() const
 {
@@ -119,7 +123,67 @@ int64_t Num::to_int64() const
     return v;
 }
 
-// Add a new initialized digit to Num
+int Num::to_cstring(char* p, int len, int base)
+{
+    // max decimal digits per Num digit. Obviously this only works for base 10
+    const auto per_digit = 9.63295986125;
+    assert(base == 10);
+
+    const NumData& d{*reinterpret_cast<const NumData*>(raw)};
+
+    // One approach is to exactly compute the space for the conversion, and
+    // then do it in place. The other is to start doing the conversion, and
+    // return an error with a guess for how much space is really required.
+
+    // calculate space needed for the conversion
+    double N = (d.sign < 0) ? 1.0 : 0.0; // space for leading '-' if negative
+    N += (d.len - 1) * per_digit; // space for all except first digit
+    auto F = d.data[d.len - 1];
+    while (F > 10)
+    {
+        N += 1.0;
+        F /= 10;
+    }
+    int n = int(N) + 1; // round up (assume we will never have exactly integral places)
+
+    if (n > len)
+        return -n;
+
+    // Now convert the number
+    p[--n] = 0;
+    Num t{*this};
+    Num B{base};
+    Num quotient;
+    Num remainder;
+
+    while (quotient.len() != 0)
+    {
+        assert(n > 0);
+        divmod(B, quotient, remainder);
+        p[--n] = '0' + (char) remainder.to_int64(); // replace with real base conversion
+        *this = quotient; // replace with pointer swap
+    }
+
+    return 0;
+}
+
+// ======================================================================================
+// Utility
+// ======================================================================================
+
+// Resize Num
+void Num::resize(int16_t size)
+{
+    if (size == len())
+        return;
+    else if (size < len())
+        shrink(int16_t(len()) - size);
+    else
+        grow(size - int16_t(len()));
+}
+
+// Add new initialized digit to Num
+// TBD maybe we shouldn't initialize here, since most users will overwrite new storage?
 void Num::grow(int16_t amt)
 {
     NumData& d{*reinterpret_cast<NumData*>(raw)};
@@ -167,6 +231,21 @@ int Num::magcmp(const Num& rhs)
     return 0;
 }
 
+// Num <=> digit
+// question - what does it mean to comparing a signed Num vs an unsigned digit?
+// maybe this is actually nonsense.
+int Num::magcmp(const uint32_t& digit)
+{
+    // Check edge cases first
+    if (len() > 1)
+        return 1;
+    if (len() == 0 && digit == 0)
+        return 0;
+
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+    return d.data[0] > digit ? 1 : d.data[0] < digit ? -1 : 0;
+}
+
 int Num::len() const
 {
     const NumData& d{*reinterpret_cast<const NumData*>(raw)};
@@ -191,52 +270,6 @@ uint32_t& Num::operator [](int i)
     NumData& d{*reinterpret_cast<NumData*>(raw)};
     return d.data[i];
 }
-
-#if 0
-int Num::to_cstring(char* p, int len, int base)
-{
-    // max decimal digits per Num digit. Obviously this only works for base 10
-    const auto per_digit = 9.63295986125;
-    assert(base == 10);
-
-    const NumData& d{*reinterpret_cast<const NumData*>(raw)};
-
-    // One approach is to exactly compute the space for the conversion, and
-    // then do it in place. The other is to start doing the conversion, and
-    // return an error with a guess for how much space is really required.
-
-    // calculate space needed for the conversion
-    double N = (d.sign < 0) ? 1.0 : 0.0; // space for leading '-' if negative
-    N += (d.len - 1) * per_digit; // space for all except first digit
-    auto F = d.data[d.len - 1];
-    while (F > 10)
-    {
-        N += 1.0;
-        F /= 10;
-    }
-    int n = int(N) + 1; // round up (assume we will never have exactly integral places)
-
-    if (n > len)
-        return -n;
-
-    // Now convert the number
-    p[--n] = 0;
-    Num t{*this};
-    Num B{base};
-    Num quotient;
-    Num remainder;
-
-    while (quotient.len() != 0)
-    {
-        assert(n > 0);
-        divmod(B, quotient, remainder);
-        p[--n] = '0' + (char) remainder.to_int64(); // replace with real base conversion
-        *this = quotient; // replace with pointer swap
-    }
-
-    return 0;
-}
-#endif
 
 // TBD
 // - use std::copy to copy arrays
