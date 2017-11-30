@@ -123,48 +123,48 @@ int64_t Num::to_int64() const
     return v;
 }
 
-int Num::to_cstring(char* p, int len, int base)
+// Convert Num to zero-terminated string.
+// Return size of buffer required
+int Num::to_cstring(char* p, int buflen, int base)
 {
-    // max decimal digits per Num digit. Obviously this only works for base 10
-    const auto per_digit = 9.63295986125;
-    assert(base == 10);
-
-    const NumData& d{*reinterpret_cast<const NumData*>(raw)};
-
-    // One approach is to exactly compute the space for the conversion, and
-    // then do it in place. The other is to start doing the conversion, and
-    // return an error with a guess for how much space is really required.
-
-    // calculate space needed for the conversion
-    double N = (d.sign < 0) ? 1.0 : 0.0; // space for leading '-' if negative
-    N += (d.len - 1) * per_digit; // space for all except first digit
-    auto F = d.data[d.len - 1];
-    while (F > 10)
-    {
-        N += 1.0;
-        F /= 10;
-    }
-    int n = int(N) + 1; // round up (assume we will never have exactly integral places)
-
-    if (n > len)
-        return -n;
+    int i = 0;
+    #define PUT(c) { if (i < buflen) p[i] = c; i++; }
 
     // Now convert the number
-    p[--n] = 0;
     Num t{*this};
+    NumData& dd{*reinterpret_cast<NumData*>(&t)};
+    bool neg = dd.sign != 0;
+    if (neg)
+        PUT('-')
+    dd.sign = 0;
+
     Num B{base};
     Num quotient;
     Num remainder;
 
-    while (quotient.len() != 0)
+    do
     {
-        assert(n > 0);
-        divmod(B, quotient, remainder);
-        p[--n] = '0' + (char) remainder.to_int64(); // replace with real base conversion
-        *this = quotient; // replace with pointer swap
-    }
+        //t.divmod(B, quotient, remainder);
+        //PUT('0' + (char) remainder.to_int64())
+        uint32_t r = t.divmod(base, quotient);
+        PUT('0' + (char) r);
+        t = quotient; // replace with pointer swap
+        t.trim();
+    } while (t.len() != 0);
 
-    return 0;
+    PUT(0)
+
+    // now reverse the string
+    int j = neg ? 1 : 0; // skip any leading '-' sign
+    int k = i - 2; // leave zero-terminator in place
+    while (j < k)
+    {
+        char c = p[j]; p[j] = p[k]; p[k] = c;
+        j++;
+        k--;
+    }
+    return i;
+    #undef PUT
 }
 
 // ======================================================================================
@@ -205,6 +205,19 @@ void Num::shrink(int16_t amt)
     // if we made it zero-size, make the sign positive as a convenience
     if (d.len == 0)
         d.sign = 0;
+}
+
+// Resize Num so that the highest digit is non-zero
+void Num::trim()
+{
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+
+    int16_t i = d.len;
+    for (; i > 0; i--)
+        if (d.data[i-1] != 0)
+            break;
+    if (i != d.len)
+        shrink(d.len - i);
 }
 
 // Num <=> Num

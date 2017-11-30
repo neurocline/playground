@@ -175,6 +175,7 @@ bool MultiwordDivide(
 
         // The estimate qhat, after the following steps, is either
         // exact or too high by 1, so this will repeat at most once.
+        #if 0
         again:
         if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
         {
@@ -183,6 +184,15 @@ bool MultiwordDivide(
             if (rhat < b)
                 goto again;
         }
+        #else
+        do
+        {
+            if (qhat < b && qhat*vn[n-2] <= b*rhat + un[j+n-2])
+                break;
+            qhat = qhat - 1;
+            rhat = rhat + vn[n-1];            
+        } while (rhat < b);
+        #endif
 
         // Multiply and subtract
         int64_t k = 0; // fix me

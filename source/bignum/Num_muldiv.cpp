@@ -23,7 +23,7 @@ Num Num::operator*(const Num& rhs)
     return temp.operator*=(rhs);
 }
 
-// Num / Num
+// Num * Num
 // Grow the lhs Num as needed
 Num& Num::operator*=(const Num& rhs)
 {
@@ -47,12 +47,12 @@ Num& Num::operator*=(const Num& rhs)
             // = 2^(2n) - 2*(2^n-1) + 1
             // = 2^(2n) - 2^n + 1
             // = 2^(2n-1) + 1 < 2^(2n)-1
-            carry = uint64_t(m.data[i]) * uint64_t(n.data[j]) + uint64_t(d.data[i+j]) + carry;
+            carry = uint64_t(m.data[j]) * uint64_t(n.data[i]) + uint64_t(d.data[i+j]) + carry;
             d.data[i+j] = (uint32_t) carry;
             carry >>= 32;
         }
 
-        d.data[j+m.len] = (uint32_t) carry;
+        d.data[j+n.len] = (uint32_t) carry;
     }
 
     // The sign of the result is the exclusive-or of the signs of the operands
@@ -64,18 +64,6 @@ Num& Num::operator*=(const Num& rhs)
     trim();
 
     return *this;
-}
-
-void Num::trim()
-{
-    NumData& d{*reinterpret_cast<NumData*>(raw)};
-
-    int16_t i = d.len;
-    for (; i > 0; i--)
-        if (d.data[i-1] != 0)
-            break;
-    if (i != d.len)
-        shrink(d.len - i);
 }
 
 // ======================================================================================
@@ -105,17 +93,24 @@ Num& Num::operator/=(const Num& rhs)
 
     // Divide magnitudes
     // TBD temp space for quotient and remainder for long numbers
-    uint32_t quotient[7];
-    uint32_t remainder[7];
+    Num quotient;
+    Num remainder;
+    int dividendSize = len();
+    int divisorSize = rhs.len();
+    quotient.resize(int16_t(dividendSize - divisorSize + 1));
+    remainder.resize(int16_t(divisorSize));
 
-    bool ok = MultiwordDivide<uint32_t>(quotient, remainder, d.data, s.data, d.len, s.len);
+    NumData& q{*reinterpret_cast<NumData*>(quotient.raw)};
+    NumData& r{*reinterpret_cast<NumData*>(remainder.raw)};
+
+    bool ok = MultiwordDivide<uint32_t>(q.data, r.data, d.data, s.data, d.len, s.len);
     assert(ok);
     if (!ok)
         return *this; // this is not supposed to ever happen
 
     int16_t qlen = d.len - s.len + 1;
     d.len = qlen; // TBD scan to make sure there are no leading zeros
-    std::memcpy(d.data, quotient, d.len * sizeof(uint32_t));
+    std::memcpy(d.data, q.data, d.len * sizeof(uint32_t));
 
     // Now trim the result size down to its actual value, because
     // m+n was the max, not the actual size. We'll have to go at
@@ -129,6 +124,14 @@ Num& Num::operator/=(const Num& rhs)
 
 void Num::divmod(const Num& rhs, Num& quotient, Num& remainder)
 {
+    // If dividend is zero, then quotient and remainder are both zero
+    if (len() == 0)
+    {
+        quotient.resize(0);
+        remainder.resize(0);
+        return;
+    }
+
     // resize quotient and remainder as needed
     // these are max sizes, the real quotient and remainder could be smaller
     int dividendSize = len();
@@ -146,4 +149,26 @@ void Num::divmod(const Num& rhs, Num& quotient, Num& remainder)
     assert(ok);
     if (!ok)
         return; // this is not supposed to ever happen
+
+    quotient.trim();
+    remainder.trim();
+}
+
+// Num / uint32_t
+uint32_t Num::divmod(uint32_t rhs, Num& quotient)
+{
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+    quotient.resize(d.len);
+    NumData& q{*reinterpret_cast<NumData*>(quotient.raw)};
+
+    uint32_t rem = 0;
+    for (int i = len() - 1; i >= 0; --i)
+    {
+        uint32_t dig = uint32_t((rem * 0x1'0000'0000LL + d.data[i]) / rhs);
+        rem = uint64_t(d.data[i]) - uint64_t(dig * rhs);
+        q.data[i] = dig;
+    }
+
+    quotient.trim();
+    return rem;
 }

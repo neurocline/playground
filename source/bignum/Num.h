@@ -74,6 +74,7 @@ public:
 
     // divmod instruction that returns both remainder and quotient
     void divmod(const Num& rhs, Num& quotient, Num& remainder);
+    uint32_t divmod(uint32_t rhs, Num& quotient);
 
     // Chunk-size read and write to the underlying storage, for
     // setting larger-sized values without parsing a string
@@ -106,6 +107,8 @@ public:
     Num& subfrom(const Num& rhs);
     int magcmp(const Num& rhs);
     int magcmp(const uint32_t& digit);
+
+    int to_cstring_len(int base=10);
 
 	byte raw[32];
     // static_assert(sizeof(raw) == 32, ""); // this is a compile error in VS2017 15.4.1

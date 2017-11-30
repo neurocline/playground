@@ -5,6 +5,8 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "../catch.hpp"
 
+#include <cstring>
+
 TEST_CASE("builtin math", "[C++]")
 {
     uint16_t v16 = uint16_t(uint8_t(-1)) * uint16_t(uint8_t(-1));
@@ -235,6 +237,7 @@ TEST_CASE("Num - multiplication", "[Num]")
     REQUIRE(v[1] == 0xFFFF'FFFEL);
 }
 
+#if 0
 TEST_CASE("Soak test", "[Num]")
 {
     //uint64_t imax = uint64_t(0x7F00'0000'0000'0000LL);
@@ -287,6 +290,134 @@ TEST_CASE("Soak test", "[Num]")
                 status = 0;
             }
         }
+    }
+}
+#endif
+
+TEST_CASE("Num - to/from cstring", "[Num]")
+{
+    Num v;
+    char s[128];
+    int n;
+
+    n = v.to_cstring(s, 2);
+    REQUIRE(n == 2);
+    REQUIRE(strlen(s) == 1);
+    REQUIRE(s[0] == '0');
+    REQUIRE(s[1] == 0);
+
+    v = 1;
+    n = v.to_cstring(s, 2);
+    REQUIRE(n == 2);
+    REQUIRE(strlen(s) == 1);
+    REQUIRE(s[0] == '1');
+    REQUIRE(s[1] == 0);
+
+    v = -1;
+    n = v.to_cstring(s, 3);
+    REQUIRE(n == 3);
+    REQUIRE(strlen(s) == 2);
+    REQUIRE(0 == strcmp(s, "-1"));
+
+    v = 1'000'000;
+    n = v.to_cstring(s, 8);
+    REQUIRE(n == 8);
+    REQUIRE(0 == strcmp(s, "1000000"));
+
+    v = -1'000'000;
+    n = v.to_cstring(s, 9);
+    REQUIRE(n == 9);
+    REQUIRE(0 == strcmp(s, "-1000000"));
+
+    v = Num{0x7FFF'FFFF'FFFF'FFFFLL} * Num{0x7FFF'FFFF'FFFF'FFFFLL};
+    n = v.to_cstring(s, 39);
+    REQUIRE(n == 39);
+    REQUIRE(0 == strcmp(s, "85070591730234615847396907784232501249"));
+}
+
+TEST_CASE("Mul", "[Num]")
+{
+    Num v;
+    Num n256{256};
+    Num n255{255};
+
+    char* vals[] = {
+        "0",
+        "255",
+        "65535",
+        "16777215",
+        "4294967295",
+        "1099511627775",
+        "281474976710655",
+        "72057594037927935",
+        "18446744073709551615",
+        "4722366482869645213695",
+        "1208925819614629174706175",
+        "309485009821345068724781055",
+        "79228162514264337593543950335",
+        "20282409603651670423947251286015", // 0xFF'FFFF'FFFF'FFFF'FFFF'FFFF'FFFF
+        0
+    };
+
+    uint64_t nums[] = {
+        0,
+        255U,
+        65'535U,
+        16'777'215UL,
+        4'294'967'295UL,
+        1'099'511'627'775ULL,
+        281'474'976'710'655ULL,
+        72'057'594'037'927'935ULL,
+        18'446'744'073'709'551'615ULL,
+        0, // will no longer fit in a uint64_t
+        0,
+        0,
+        0,
+        0
+    };
+
+    for (int i = 0; vals[i] != nullptr; i++)
+    {
+        char buf[256];
+        int l = v.to_cstring(buf, 256);
+        std::cout << buf << "\n";
+        REQUIRE(l < 256);
+
+        if (nums[i] != 0)
+            REQUIRE(nums[i] == v.to_uint64());
+        REQUIRE(0 == strcmp(vals[i], buf));
+
+        v = v*n256 + n255;
+    }
+}
+
+TEST_CASE("Num - divmod", "[Num]")
+{
+    Num v;
+    Num q;
+    Num r;
+    Num n10{10};
+    Num n256{256};
+    Num n255{255};
+    Num qdec;
+    for (int i = 0; i < 13; i++)
+    {
+        char buf[256];
+        int clen = v.to_cstring(buf, 256);
+        REQUIRE(clen < sizeof(buf));
+        std::cout << "v=" << buf;
+
+        v.divmod(n10, q, r);
+        uint32_t rdec = v.divmod(10, qdec);
+        char qbuf[256];
+        clen = qdec.to_cstring(qbuf, 256);
+        REQUIRE(clen < sizeof(buf));
+
+        REQUIRE(rdec == r.to_int64());
+        REQUIRE(q.to_int64() == qdec.to_int64());
+        std::cout << " q=" << qbuf << " r=" << rdec << "\n";
+
+        v = v*n256 + n255;
     }
 }
 
