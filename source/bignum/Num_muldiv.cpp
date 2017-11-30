@@ -66,6 +66,38 @@ Num& Num::operator*=(const Num& rhs)
     return *this;
 }
 
+// Num * digit
+// Create a temp and then just call operator*=()
+Num Num::operator*(const uint32_t& rhs)
+{
+    Num temp{*this};
+    return temp.operator*=(rhs);
+}
+
+// Num * digit
+Num& Num::operator*=(const uint32_t& rhs)
+{
+    NumData& d{*reinterpret_cast<NumData*>(raw)};
+
+    unsigned long long carry = 0;
+    int i = 0;
+    for (; i < d.len; i++)
+    {
+        carry = carry + d.data[i] * uint64_t(rhs);
+        d.data[i] = (uint32_t) carry;
+        carry >>= 32;
+    }
+
+    // If there is still a carry, we need to add another digit
+    if (carry != 0)
+    {
+        grow(1);
+        d.data[i] = (uint32_t) carry;
+    }
+
+    return *this;
+}
+
 // ======================================================================================
 // Divide
 //
@@ -120,6 +152,22 @@ Num& Num::operator/=(const Num& rhs)
     // The sign is positive if both signs are equal, otherwise negative
     d.sign = (d.sign == s.sign) ? 0 : -1;
     return *this;
+}
+
+// Num / uint32_t
+// Create a temp and just call operator /=()
+Num Num::operator/(const uint32_t& rhs)
+{
+    Num temp{*this};
+    return temp.operator/=(rhs);
+}
+
+// Num /uint32_t
+// TBD Note that this isn't an optimized version, it's just for symmetry. Fix it?
+Num& Num::operator/=(const uint32_t& rhs)
+{
+    Num temp{rhs};
+    return operator/=(temp);
 }
 
 void Num::divmod(const Num& rhs, Num& quotient, Num& remainder)

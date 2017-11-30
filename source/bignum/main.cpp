@@ -421,6 +421,31 @@ TEST_CASE("Num - divmod", "[Num]")
     }
 }
 
+TEST_CASE("Num - to/from string", "[Num]")
+{
+    char buf[256];
+    Num v("123456");
+    v.to_cstring(buf, 256);
+    REQUIRE(0 == strcmp(buf, "123456"));
+
+    v = Num{"FFFF", 16};
+    v.to_cstring(buf, 256);
+    REQUIRE(0 == strcmp(buf, "65535"));
+
+    char mbuf[256];
+    mbuf[0] = '1';
+    mbuf[1] = 0;
+    v = 1;
+    for (int i = 0; i < 60; i++)
+    {
+        std::cout << mbuf << "\n";
+        v.to_cstring(buf, 256);
+        REQUIRE(0 == strcmp(buf, mbuf));
+        v *= 10;
+        strcat(mbuf, "0");
+    }
+}
+
 #if 0
 
 #include "Num.h"

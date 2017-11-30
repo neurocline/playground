@@ -67,6 +67,19 @@ Num& Num::operator=(const Num& other) noexcept
     return *this;
 }
 
+// Copy constructor from char*
+Num::Num(char const* p, int base)
+{
+    from_cstring(p, base);
+}
+
+#if 0
+// Copy assignment from char* (only base 10)
+Num& Num::operator=(char const* p)
+{
+}
+#endif
+
 Num::~Num()
 {
     // TBD free allocated memory
@@ -98,6 +111,26 @@ Num::Num(long long v)
 // ======================================================================================
 // Conversions
 // ======================================================================================
+
+Num::operator int() const
+{
+    return int(to_int64());
+}
+
+Num::operator unsigned int() const
+{
+    return uint32_t(to_uint64());
+}
+
+Num::operator long long() const
+{
+    return to_int64();
+}
+
+Num::operator unsigned long long() const
+{
+    return to_uint64();
+}
 
 // Convert a Num to an unsigned long long value (modulo 2^64)
 uint64_t Num::to_uint64() const
@@ -165,6 +198,24 @@ int Num::to_cstring(char* p, int buflen, int base)
     }
     return i;
     #undef PUT
+}
+
+// Convert zero-terminated string to Num
+// TBD error handling on input instead of turning garbage into garbage
+bool Num::from_cstring(char const* p, int base)
+{
+    resize(0);
+    
+    for (; *p; p++)
+    {
+        char digit = *p - '0';
+        if (base == 16 && digit >= 10)
+            digit = (*p & 0x0F) + 9;
+
+        operator*=(uint32_t(base));
+        operator+=(uint32_t(digit));
+    }
+    return true;
 }
 
 // ======================================================================================

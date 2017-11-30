@@ -45,6 +45,12 @@ public:
     // Copy assignment operator
     Num& operator=(const Num& other) noexcept;
 
+    // Conversion operators (will return mod 2^32 or 2^64)
+    operator int() const;
+    operator unsigned int() const;
+    operator long long() const;
+    operator unsigned long long() const;
+
     // Math by a single "digit"
     Num operator+(const uint32_t& rhs);
     Num operator-(const uint32_t& rhs);
@@ -107,8 +113,6 @@ public:
     Num& subfrom(const Num& rhs);
     int magcmp(const Num& rhs);
     int magcmp(const uint32_t& digit);
-
-    int to_cstring_len(int base=10);
 
 	byte raw[32];
     // static_assert(sizeof(raw) == 32, ""); // this is a compile error in VS2017 15.4.1
