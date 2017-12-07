@@ -5,7 +5,7 @@ workspace "playground"
     platforms { "x32", "x64" }
     location("../build")
     language "C++"
-    cppdialect "C++14"
+    cppdialect "C++17"
     warnings "Extra"
 
 	filter { "platforms:x32" }
@@ -22,8 +22,8 @@ workspace "playground"
         buildoptions { "-mlzcnt" }
 
 newoption {
-   trigger     = "with-opengl",
-   description = "Force the use of OpenGL for rendering, regardless of platform"
+   trigger     = "something",
+   description = "Some description"
 }
 
 include "bignum"

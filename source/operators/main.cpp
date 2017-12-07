@@ -4,11 +4,13 @@
 
 void SimpleOps();
 void destructors();
+void bitfields();
 
 int main(int /*argc*/, char** /*argv*/)
 {
     SimpleOps();
     destructors();
+    bitfields();
 
 	return 0;
 }
@@ -67,4 +69,53 @@ void destructors()
 
     A* a = new B();
     delete a;
+}
+
+void bitfields()
+{
+    struct A
+    {
+        uint32_t local : 1;
+        int32_t sign : 1;
+        uint32_t len : 30;
+    };
+
+    A a;
+    a.local = 1;
+    a.sign = 0;
+    a.len = 5;
+
+    A b;
+    b.local = 0;
+    b.sign = -1;
+    b.len = 10;
+
+    int32_t sign = -1;
+    b.sign = sign;
+
+    sign = b.sign;
+
+    struct B
+    {
+        uint32_t local : 1;
+        int32_t sign : 1;
+
+        union
+        {
+            struct
+            {
+                uint32_t len : 4;
+                uint32_t pad : 26;
+                uint32_t buf[7];
+            } small;
+            struct
+            {
+                int32_t len : 30;
+                int32_t bufsize;
+                uint32_t* buf;
+            } big;
+        };
+    };
+
+    int x = sizeof(B);
 }

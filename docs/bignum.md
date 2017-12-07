@@ -1,6 +1,6 @@
 # Multiple precision math
 
-In the past 40 years, we have made big advances. Early processors had 8-bit add 
+In the past 40 years, we have made big advances. Early processors had 8-bit add
 and subtract, and we had to build everything up from those primitives. A 16x16
 multiple could take hundreds of clock cycles, and division thousands. Now we
 have 64-bit processors with a 128/64 divide instruction that takes a few hundred
@@ -43,7 +43,11 @@ Misc
 - [Huge Long Numbers](https://github.com/daidodo/huge-long-number)
 - [A Class for Representing Large Numbers](http://www.drdobbs.com/a-class-for-representing-large-integers/184403247)
 - [Multiprecision arithmetic](https://cryptojedi.org/peter/data/space-20141020.pdf)
+- [creachadair/imath](https://github.com/creachadair/imath)
 
 More
 
 - [A survey of fast exponentiation methods](https://pdfs.semanticscholar.org/482d/a61cfb06aaad135bd0df0c367d2bbec0686b.pdf)
+- [Modular exponentiation](https://en.wikipedia.org/wiki/Modular_exponentiation)
+- [Arbitrary precision Hex <-> Dec converter in Javascript](http://www.danvk.org/hex2dec.html)
+- [Modern Computer Arithmetic](https://members.loria.fr/PZimmermann/mca/mca-cup-0.5.9.pdf)

@@ -8,16 +8,6 @@
 
 #include <cassert>
 
-// --------------------------------------------------------------------------------------
-
-//#define VERBOSE_NUM
-#ifdef VERBOSE_NUM
-#include <iostream>
-#define DIAG(TAG) std::cout << "Num " TAG "\n"
-#else
-#define DIAG(TAG)
-#endif
-
 // ======================================================================================
 // Addition
 //
@@ -67,11 +57,8 @@ Num Num::operator+(const Num& rhs)
 // Grow/shrink the lhs Num as needed.
 Num& Num::operator+=(const Num& rhs)
 {
-    NumData& d{*reinterpret_cast<NumData*>(raw)};
-    const NumData& s{*reinterpret_cast<const NumData*>(rhs.raw)};
-
     // If the signs are the same, we add and preserve the sign
-    if (d.sign == s.sign)
+    if (data.sign == rhs.data.sign)
         return addto(rhs);
 
     // If the signs are different, we are actually subtracting. If the lhs has the larger
@@ -100,23 +87,24 @@ Num Num::operator+(const uint32_t& digit)
 // Note that this is mainly a hack at the moment, since it assumes lhs is non-negative
 Num& Num::operator+=(const uint32_t& digit)
 {
-    NumData& d{*reinterpret_cast<NumData*>(raw)};
+    assert(data.sign == 0);
 
     // Add through the Num; we can stop once we no longer have a carry
     int i = 0;
     long long carry = digit;
-    for (; i < d.len && carry != 0; i++)
+    uint32_t* buf = databuffer();
+    for (; i < data.len && carry != 0; i++)
     {
-        carry = carry + d.data[i];
-        d.data[i] = (uint32_t) carry;
+        carry = carry + buf[i];
+        buf[i] = (uint32_t) carry;
         carry >>= 32;
     }
 
     // If we still have a carry, we need to grow the Num by a digit
     if (carry != 0)
     {
-        grow(1);
-        d.data[i] = (uint32_t) carry;
+        buf = grow(1);
+        buf[i] = (uint32_t) carry;
     }
 
     return *this;
@@ -126,35 +114,35 @@ Num& Num::operator+=(const uint32_t& digit)
 
 Num& Num::addto(const Num& rhs)
 {
-    NumData& d{*reinterpret_cast<NumData*>(raw)};
-    const NumData& s{*reinterpret_cast<const NumData*>(rhs.raw)};
+    auto lbuf = databuffer();
+    auto rbuf = rhs.cdatabuffer();
 
     // Two Num values can have different lengths. Add the prefix together, where
     // the prefix is the largest shared length between the two Nums. Note that by
     // definition one Num is all prefix and the other Num has an optional
     // suffix, and that the prefix may be zero length.
     int i = 0;
-    int P = (d.len < s.len) ? d.len : s.len;
+    int P = (data.len < rhs.data.len) ? data.len : rhs.data.len;
     long long carry = 0;
 
     for (; i < P; i++)
     {
-        carry = carry + d.data[i] + s.data[i];
-        d.data[i] = (uint32_t) carry;
+        carry = carry + lbuf[i] + rbuf[i];
+        lbuf[i] = (uint32_t) carry;
         carry >>= 32; // this is either +1 or 0
     }
 
     // If the lhs has remaining data, then we just finish adding the carry into
     // the lhs until we have no more carry. This may result in increasing lhs by
     // 1 digit.
-    if (d.len > i)
+    if (data.len > i)
     {
         for (; carry != 0; i++)
         {
-            if (i == d.len)
-                grow(1);
-            carry = carry + d.data[i];
-            d.data[i] = (uint32_t) carry;
+            if (i == data.len)
+                lbuf = grow(1);
+            carry = carry + lbuf[i];
+            lbuf[i] = (uint32_t) carry;
             carry >>= 32;
         }
     }
@@ -163,13 +151,13 @@ Num& Num::addto(const Num& rhs)
     // together. This will grow the lhs to at least the size of the rhs, and it could
     // grow by 1 more if the carry+rhs spills over into a new digit. We won't know that
     // until we get to the end of the rhs+carry.
-    else if (s.len > i)
+    else if (rhs.data.len > i)
     {
-        grow(s.len - d.len);
-        for (; i < s.len; i++)
+        grow(rhs.data.len - data.len);
+        for (; i < rhs.data.len; i++)
         {
-            carry = carry + s.data[i];
-            d.data[i] = (uint32_t) carry;
+            carry = carry + rbuf[i];
+            lbuf[i] = (uint32_t) carry;
             carry >>= 32;
         }
     }
@@ -177,8 +165,8 @@ Num& Num::addto(const Num& rhs)
     // If we still have a carry, create a new digit and place it there
     if (carry != 0)
     {
-        grow(1);
-        d.data[i] = (uint32_t) carry;
+        lbuf = grow(1);
+        lbuf[i] = (uint32_t) carry;
     }
 
     return *this;
@@ -191,47 +179,33 @@ Num& Num::addto(const Num& rhs)
 // for subtract.
 Num& Num::subfrom(const Num& rhs)
 {
-    NumData& d{*reinterpret_cast<NumData*>(raw)};
-    const NumData& s{*reinterpret_cast<const NumData*>(rhs.raw)};
+    auto lbuf = databuffer();
+    auto rbuf = rhs.cdatabuffer();
 
     // Subtract the prefix - we already know that |lhs| > |rhs|
     int i = 0;
     long long borrow = 0;
-    int n = 0; // tentative new size of lhs
 
-    for (; i < s.len; i++)
+    for (; i < rhs.data.len; i++)
     {
-        borrow = borrow + d.data[i] - s.data[i];
+        borrow = borrow + lbuf[i] - rbuf[i];
         if (borrow < 0)
-            d.data[i] = (uint32_t)((1LL<<32) + borrow);
+            lbuf[i] = (uint32_t)((1LL<<32) + borrow);
         else
-            d.data[i] = (uint32_t) borrow;
+            lbuf[i] = (uint32_t) borrow;
         borrow >>= 32; // this is either -1 or 0
-
-        if (d.data[i] != 0)
-            n = i+1; // track size of lhs
     }
 
     // If we have a borrow left, ripple through the remaining number
-    for (; i < d.len && borrow != 0; i++)
+    for (; i < data.len && borrow != 0; i++)
     {
-        borrow = borrow + d.data[i];
-        d.data[i] = (borrow < 0) ? (uint32_t)((1LL<<32) + borrow) : (uint32_t) borrow;
+        borrow = borrow + lbuf[i];
+        lbuf[i] = (borrow < 0) ? (uint32_t)((1LL<<32) + borrow) : (uint32_t) borrow;
         borrow >>= 32; // this is either -1 or 0
-
-        if (d.data[i] != 0)
-            n = i; // track size of lhs
     }
 
-    // See if the number shrunk - we have to scan the remaining portion to find the
-    // first non-zero. We could potentially shrink all the way down to zero.
-    for (i = d.len; i > n; --i)
-        if (d.data[i-1] != 0)
-            break;
-
-    // If we made the number shorter, trim it
-    if (i != d.len)
-        shrink(int16_t(d.len - i));
+    // Trim so MSB is non-zero
+    trim();
 
     return *this;
 }
@@ -277,11 +251,8 @@ Num Num::operator-(const Num& rhs)
 // Grow/shrink the lhs Num as needed.
 Num& Num::operator-=(const Num& rhs)
 {
-    NumData& d{*reinterpret_cast<NumData*>(raw)};
-    const NumData& s{*reinterpret_cast<const NumData*>(rhs.raw)};
-
     // If the signs are different, we add and preserve the sign
-    if (d.sign != s.sign)
+    if (data.sign != rhs.data.sign)
         return addto(rhs);
 
     // If the signs are the same, we are actually subtracting. If the lhs has the larger

@@ -109,7 +109,7 @@ bool MultiwordDivide(
     using mathType = typename ContainsType<WORD>::type;
     const mathType b = ContainsType<WORD>::base;
     const mathType WORD_MASK = ContainsType<WORD>::mask;
-    
+
     // Sanity checks
     if (dividendSize < divisorSize || divisorSize == 0)
         return false;
@@ -190,7 +190,7 @@ bool MultiwordDivide(
             if (qhat < b && qhat*vn[n-2] <= b*rhat + un[j+n-2])
                 break;
             qhat = qhat - 1;
-            rhat = rhat + vn[n-1];            
+            rhat = rhat + vn[n-1];
         } while (rhat < b);
         #endif
 

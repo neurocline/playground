@@ -7,6 +7,385 @@
 
 #include <cstring>
 
+TEST_CASE("Num - buffer management", "[Num]")
+{
+    // Test reserve - it should preserve existing data
+    Num resizing;
+    REQUIRE(resizing.data.local == 1);
+    REQUIRE(resizing.small.len == 0);
+
+    resizing.reserve(2);
+    REQUIRE(resizing.data.local == 1);
+    resizing.small.len = 2;
+    resizing.small.buf[0] = 0;
+    resizing.small.buf[1] = 1;
+
+    resizing.reserve(8);
+    REQUIRE(resizing.data.local == 0);
+    REQUIRE(resizing.big.bufsize == 8);
+    for (uint32_t i = 0; i < 2; i++)
+        REQUIRE(resizing.big.buf[i] == i);
+    for (uint32_t i = 0; i < 8; i++)
+        resizing.big.buf[i] = i;
+    resizing.big.len = 8;
+
+    resizing.reserve(16);
+    REQUIRE(resizing.data.local == 0);
+    REQUIRE(resizing.big.bufsize == 16);
+    for (uint32_t i = 0; i < 8; i++)
+        REQUIRE(resizing.big.buf[i] == i);
+    for (uint32_t i = 0; i < 16; i++)
+        resizing.big.buf[i] = i;
+    resizing.big.len = 16;
+
+    // Test grow (internal function)
+    Num growv;
+    REQUIRE(growv.small.len == 0);
+    growv.grow(1);
+    REQUIRE(growv.data.local == 1);
+    REQUIRE(growv.small.len == 1);
+    growv.grow(6);
+    REQUIRE(growv.data.local == 1);
+    REQUIRE(growv.small.len == 7);
+    growv.grow(1);
+    REQUIRE(growv.data.local == 0);
+    REQUIRE(growv.big.len == 8);
+    growv.grow(8);
+    REQUIRE(growv.data.local == 0);
+    REQUIRE(growv.big.len == 16);
+
+    // Test trim - leave number in canonical form
+    {
+    Num trimv;
+    trimv.reserve(2);
+    trimv.databuffer()[0] = 5;
+    trimv.databuffer()[1] = 8;
+    trimv.small.len = 2;
+
+    trimv.trim();
+    REQUIRE(trimv.small.len == 2);
+    REQUIRE(trimv.databuffer()[0] == 5);
+    REQUIRE(trimv.databuffer()[1] == 8);
+
+    trimv.databuffer()[1] = 0;
+    trimv.trim();
+    REQUIRE(trimv.small.len == 1);
+    REQUIRE(trimv.databuffer()[0] == 5);
+    }
+
+    // Test shrink (internal function)
+    {
+    Num shrinkv;
+    REQUIRE(shrinkv.small.len == 0);
+    shrinkv.shrink(1);
+    REQUIRE(shrinkv.small.len == 0);
+    shrinkv.grow(10);
+    REQUIRE(shrinkv.big.len == 10);
+    shrinkv.shrink(8);
+    REQUIRE(shrinkv.big.len == 2);
+    }
+}
+
+TEST_CASE("Num - big 5 (constructors and copy assignment operators)", "[Num]")
+{
+    // Basic constructor
+    Num zero;
+    REQUIRE(zero.data.local == 1);
+    REQUIRE(zero.data.len == 0);
+    REQUIRE(zero.data.sign == 0);
+
+    // Make some source numbers to test with
+    // 16-digit zero
+    Num zero16;
+    zero16.reserve(16);
+    REQUIRE(zero16.data.local == 0);
+    REQUIRE(zero16.big.buf != nullptr);
+    REQUIRE(zero16.data.len == 0);
+    REQUIRE(zero16.big.bufsize == 16);
+
+    // 2-digit nonzero
+    Num num2;
+    num2.small.buf[0] = 0x0000'000FL;
+    num2.small.buf[1] = 0xF000'0000L;
+    num2.small.len = 2;
+    REQUIRE(num2.data.local == 1);
+    REQUIRE(num2.small.len == 2);
+
+    // 16-digit nonzero
+    Num num16;
+    num16.reserve(16);
+    REQUIRE(num16.big.bufsize == 16);
+    memset(num16.big.buf, 0, num16.big.bufsize*4);
+    num16.big.len = 16;
+    num16.big.buf[15] = 0x9988'7766L;
+    REQUIRE(num16.data.local == 0);
+    REQUIRE(num16.big.len == 16);
+
+    // 8-digit nonzero in 16-digit buffer
+    Num num8_16;
+    num8_16.reserve(16);
+    REQUIRE(num8_16.big.bufsize == 16);
+    memset(num8_16.big.buf, 0, num8_16.big.bufsize*4);
+    num8_16.big.len = 8;
+    num8_16.big.buf[7] = 0x1234'5678L;
+    REQUIRE(num8_16.data.local == 0);
+    REQUIRE(num8_16.big.len == 8);
+
+    // Copy constructor of big zero - this should produce a small zero
+    Num copyzero16{zero16};
+    REQUIRE(copyzero16.data.local == 1);
+    REQUIRE(copyzero16.small.len == 0);
+
+    // Copy constructor of small num
+    Num smallcopy{num2};
+    REQUIRE(smallcopy.data.local == 1);
+    REQUIRE(smallcopy.small.len == 2);
+    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
+    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
+
+    // Copy a 8-digit number that is in a 16-digit buffer
+    Num bigcopy{num8_16};
+    REQUIRE(bigcopy.data.local == 0);
+    REQUIRE(bigcopy.big.len == 8);
+    REQUIRE(bigcopy.big.bufsize == 8);
+    REQUIRE(bigcopy.big.buf[7] == 0x1234'5678L);
+
+    // Copy assign a zero
+    Num copyzero = zero;
+    REQUIRE(copyzero.data.local == 1);
+    REQUIRE(copyzero.small.len == 0);
+
+    // Copy assign a small Num
+    Num copysmall = num2;
+    REQUIRE(smallcopy.data.local == 1);
+    REQUIRE(smallcopy.small.len == 2);
+    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
+    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
+
+    // Copy assign a small Num into a big one - it stays a big Num
+    Num bignum2;
+    bignum2.reserve(16);
+    bignum2 = num2;
+    REQUIRE(bignum2.data.local == 0);
+    REQUIRE(bignum2.big.bufsize == 16);
+    REQUIRE(bignum2.big.len == 2);
+    REQUIRE(bignum2.big.buf[0] == 0x0000'000FL);
+    REQUIRE(bignum2.big.buf[1] == 0xF000'0000L);
+
+    // Copy assign a big Num into a big one with a buffer that's too small
+    Num bignum8;
+    bignum8.reserve(8);
+    bignum8 = num16;
+    REQUIRE(bignum8.data.local == 0);
+    REQUIRE(bignum8.big.bufsize == 16);
+    REQUIRE(bignum8.big.len == 16);
+    REQUIRE(bignum8.big.buf[15] == 0x9988'7766L);
+
+    // Copy assign a big Num into one with a bigger buffer - the dest
+    // retains its bigger buffer
+    Num bignum32;
+    bignum32.reserve(32);
+    bignum32 = num16;
+    REQUIRE(bignum32.data.local == 0);
+    REQUIRE(bignum32.big.bufsize == 32);
+    REQUIRE(bignum32.big.len == 16);
+    REQUIRE(bignum32.big.buf[15] == 0x9988'7766L);
+}
+
+TEST_CASE("Num - copy assign from primitive numbers", "[Num]")
+{
+    Num v = 0;
+    REQUIRE(v.data.local == 1);
+    REQUIRE(v.small.len == 0);
+
+    v = -1;
+    REQUIRE(v.data.local == 1);
+    REQUIRE(v.small.len == 1);
+    REQUIRE(v.small.sign == -1);
+    REQUIRE(v.small.buf[0] == 1);
+
+    v = int64_t((1ULL << 63) - 1);
+    REQUIRE(v.data.local == 1);
+    REQUIRE(v.small.len == 2);
+    REQUIRE(v.small.sign == 0);
+    REQUIRE(v.small.buf[0] == 0xFFFF'FFFF);
+    REQUIRE(v.small.buf[1] == 0x7FFF'FFFF);
+
+    v = uint64_t(-1LL);
+    REQUIRE(v.data.local == 1);
+    REQUIRE(v.small.len == 2);
+    REQUIRE(v.small.sign == 0);
+    REQUIRE(v.small.buf[0] == 0xFFFF'FFFF);
+    REQUIRE(v.small.buf[1] == 0xFFFF'FFFF);
+}
+
+TEST_CASE("Num - addition", "[Num]")
+{
+    Num augend;
+    Num addend;
+
+    // Adding zero
+    Num result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 0);
+
+    result = augend + 0;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 0);
+
+    // positive + positive
+    augend = 1;
+    addend = 1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == 0);
+    REQUIRE(result.small.buf[0] == 2);
+
+    // negative + negative
+    augend = -1;
+    addend = -1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == -1);
+    REQUIRE(result.small.buf[0] == 2);
+
+    // positive + negative
+    augend = 1;
+    addend = -1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 0);
+
+    augend = 1;
+    addend = -2;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == -1);
+    REQUIRE(result.small.buf[0] == 1);
+    
+    augend = 2;
+    addend = -1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == 0);
+    REQUIRE(result.small.buf[0] == 1);
+
+    // negative + positive
+    augend = -1;
+    addend = 1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 0);
+
+    augend = -1;
+    addend = 2;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == 0);
+    REQUIRE(result.small.buf[0] == 1);
+
+    augend = -2;
+    addend = 1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == -1);
+    REQUIRE(result.small.buf[0] == 1);
+
+    // Making a Num bigger than uint64_t and then smaller again
+    augend = 0xFFFF'FFFF'FFFF'FFFFULL;
+    addend = 1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 3);
+    REQUIRE(result.small.sign == 0);
+    REQUIRE(result.small.buf[0] == 0);
+    REQUIRE(result.small.buf[1] == 0);
+    REQUIRE(result.small.buf[2] == 1);
+
+    augend = result;
+    addend = -1;
+    result = augend + addend;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 2);
+    REQUIRE(result.small.sign == 0);
+    REQUIRE(result.small.buf[0] == 0xFFFF'FFFFUL);
+    REQUIRE(result.small.buf[1] == 0xFFFF'FFFFUL);
+
+    augend = 1;
+    result = augend + 1;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.sign == 0);
+    REQUIRE(result.small.buf[0] == 2);
+}
+
+TEST_CASE("Num - multiply and divide", "[Num]")
+{
+    Num multiplicand;
+    Num multiplier;
+    Num result;
+
+    result = multiplicand * multiplier;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 0);
+
+    multiplicand = 7;
+    multiplier = 6;
+    result = multiplicand * multiplier;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.buf[0] == 42);
+
+    multiplicand = 1;
+    multiplier = 100;
+    for (int i = 0; i < 10; i++)
+        multiplicand *= multiplier;
+    result = multiplicand;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 3); // 0x56bc75e2d63100000
+    REQUIRE(result.small.buf[0] == 0x63100000);
+    REQUIRE(result.small.buf[1] == 0x6bc75e2d);
+    REQUIRE(result.small.buf[2] == 0x00000005);
+
+    multiplicand = result;
+    multiplier = result;
+    result = multiplicand * multiplier;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 5); // 0x1d'6329f1c3'5ca4bfab'b9f56100'00000000
+    REQUIRE(result.small.buf[0] == 0x00000000);
+    REQUIRE(result.small.buf[1] == 0xb9f56100);
+    REQUIRE(result.small.buf[2] == 0x5ca4bfab);
+    REQUIRE(result.small.buf[3] == 0x6329f1c3);
+    REQUIRE(result.small.buf[4] == 0x0000001d);
+
+    // biggest Num in small buf
+    // 26959946667150639794667015087019630673637144422540572481103610249216
+    // 10^68
+
+    Num dividend;
+    Num divisor = 1;
+
+    result = dividend / divisor;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 0);
+
+    dividend = 42;
+    divisor = 6;
+    result = dividend / divisor;
+    REQUIRE(result.data.local == 1);
+    REQUIRE(result.small.len == 1);
+    REQUIRE(result.small.buf[0] == 7);
+}
+
+// old tests
+#if 0
+
 TEST_CASE("builtin math", "[C++]")
 {
     uint16_t v16 = uint16_t(uint8_t(-1)) * uint16_t(uint8_t(-1));
@@ -445,152 +824,4 @@ TEST_CASE("Num - to/from string", "[Num]")
         strcat(mbuf, "0");
     }
 }
-
-#if 0
-
-#include "Num.h"
-
-#include <assert.h>
-
-int main(int /*argc*/, char** /*argv*/)
-{
-    Num divisor{0LL};
-    Num dividend{0LL};
-
-    for (int i = 0; i < 100; i++)
-    {
-        divisor = divisor + 11;
-        for (int j = 0; j < 100; j++)
-        {
-            dividend = dividend + 29;
-            // Num temp = dividend / divisor;
-        }
-    }
-
-    long long expect = 100*100*29;
-    long long actual = dividend.to_int64();
-    assert(expect == actual);
-
-    Num qb{0x12345678L};
-    uint32_t v = qb[0];
-    assert(v == 0x12345678L);
-    assert(qb.len() < 2 || qb[1] == 0);
-    Num qq{0x1122334455667788LL};
-    assert(qq[0] == 0x55667788L);
-    assert(qq[1] == 0x11223344L);
-    return 0;
-}
-
-#if 0
-
-#include "Bignum.h"
-
-#include <cassert>
-#include <iostream>
-
-// dividend = 676201909253
-// divisor = 993319
-// correct = 680750
-// returned = 680749
-
-// dividend = 131075
-// divisor = 131075
-// obviously this should be 1
-// returned 0
-
-int main(int /*argc*/, char** /*argv*/)
-{
-    Bignum b("102030405060708090");
-    TestBignum();
-
-    //for (uint64_t visor = 993319; visor < 1ULL << 48; visor += 993319)
-    //    for (uint64_t dend = 1046527; dend < 1ULL << 48; dend += 1046527)
-    int count = 0;
-    for (uint64_t dend = 1ULL<<33; dend < 1ULL << 48; dend += 1)
-        for (uint64_t visor = 1; visor <= dend; visor += 1)
-        {
-#if 0
-            uint16_t dividend[4];
-            uint16_t divisor[4];
-
-            #define ASSIGN(T, V) \
-                { uint64_t v = V; \
-                T[0] = (v & 0xFFFF); v >>= 16; \
-                T[1] = (v & 0xFFFF); v >>= 16; \
-                T[2] = (v & 0xFFFF); v >>= 16; \
-                T[3] = (v & 0xFFFF); }
-
-            ASSIGN(dividend, dend)
-            ASSIGN(divisor, visor)
-
-            #define SIZE(T) \
-                T[3] != 0 ? 4 : T[2] != 0 ? 3 : T[1] != 0 ? 2 : 1
-
-            int m = SIZE(dividend);
-            int n = SIZE(divisor);
-
-            uint16_t quotient[4];
-            uint16_t remainder[4];
-
-            //bool ok = LongDivide(quotient, remainder, dividend, divisor, m, n);
-            bool ok = MultiwordDivide<uint16_t>(quotient, remainder, dividend, divisor, m, n);
-
-            assert(ok);
-
-            #define FETCH(T) \
-                (uint64_t(T[0]) | (uint64_t(T[1]) << 16) | (uint64_t(T[2]) << 32) | (uint64_t(T[3]) << 48))
-
-            uint64_t q = FETCH(quotient);
-            uint64_t qf = dend / visor;
-            assert(q == qf);
-#else
-            uint32_t dividend[2];
-            uint32_t divisor[2];
-
-            #define ASSIGN(T, V) \
-                { uint64_t v = V; \
-                T[0] = (v & 0xFFFFFFFF); v >>= 32; \
-                T[1] = (v & 0xFFFFFFFF); }
-
-            ASSIGN(dividend, dend)
-            ASSIGN(divisor, visor)
-
-            #define SIZE(T) \
-                T[1] != 0 ? 2 : 1
-
-            int m = SIZE(dividend);
-            int n = SIZE(divisor);
-
-            uint32_t quotient[2]; quotient[1] = 0;
-            uint32_t remainder[2]; remainder[1] = 0;
-
-            bool ok = MultiwordDivide<uint32_t>(quotient, remainder, dividend, divisor, m, n);
-
-            assert(ok);
-
-            #define FETCH(T) \
-                (uint64_t(T[0]) | (uint64_t(T[1]) << 32))
-
-            uint64_t q = FETCH(quotient);
-            uint64_t qf = dend / visor;
-            assert(q == qf);
-            uint64_t r = FETCH(remainder);
-            assert(dend == q * visor + r);
 #endif
-
-            count++;
-            if (count == 25'000'000)
-            {
-                std::cout << dend << '/' << visor << " = " << q << ", " << r << std::endl;
-                count = 0;
-            }
-        }
-}
-
-// 676201909250
-// 676201909253
-
-#endif //
-
-#endif
-

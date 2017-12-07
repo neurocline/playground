@@ -8,20 +8,16 @@
 #include <cstdint>
 
 // Get definition of std::byte
-// - in clang/libc++ as of 5.0
 #if defined(_MSVC_LANG) && _MSVC_LANG > 201402
 // - in Visual Studio as of VS 2017 15.3 and /std:c++17
 #include <cstddef>
+// - in clang/libc++ as of 5.0
 // Otherwise, create it
 #else
 namespace std {
     enum class byte : unsigned char {};
 }
 #endif
-// this probably doesn't work because of Windows Kit defining byte
-// c:\program files (x86)\windows kits\8.0\include\shared\rpcndr.h(164)
-// Also, using at global scope is bad behavior.
-using byte = std::byte;
 
 // ======================================================================================
 
@@ -29,40 +25,79 @@ class Num
 {
 public:
 	Num();
-	~Num();
 
-    // Copy constructor
-    Num(const Num& other) noexcept;
+    // Big 5: destructor, copy constructor, copy assignment operator
+    // (move constructor and move assignment operator are default generated)
+	~Num() noexcept;
+    Num(const Num& other) noexcept;            // Copy constructor
+    Num& operator=(const Num& other) noexcept; // Copy assignment operator
+    Num(Num&& rhs) = default;                  // Move constructor
+    Num& operator=(Num&& rhs) = default;       // Move assignment operator
 
-    // Construct a Num from a long int
-    Num(long long v);
+    // Reserve space for a large Num. This can never ben used to shrink the size
+    // of a Num - to "garbage collect", copy to a new zero-length Num.
+    void reserve(int size);
 
+    // Construct Num from integral primitives
+    Num(int v) noexcept;
+    Num(unsigned int v) noexcept;
+    Num(long long v) noexcept;
+    Num(unsigned long long v) noexcept;
+
+    // Copy assignment Num from integral primitives
+    Num& operator=(int v) noexcept;
+    Num& operator=(unsigned int v) noexcept;
+    Num& operator=(long long v) noexcept;
+    Num& operator=(unsigned long long v) noexcept;
+
+    #if 0
     // Construct a Num from a c-string (note that this can conflict with the long long
     // constructor, due to implicit promotion rules - get rid of it in favor of std::string
     // and string_view constructors?)
     Num(char const* p, int base=10);
 
-    // Copy assignment operator
-    Num& operator=(const Num& other) noexcept;
-
     // Conversion operators (will return mod 2^32 or 2^64)
-    operator int() const;
-    operator unsigned int() const;
-    operator long long() const;
-    operator unsigned long long() const;
+    explicit operator int() const;
+    explicit operator unsigned int() const;
+    explicit operator long long() const;
+    explicit operator unsigned long long() const;
+    #endif
 
+    // Each operator has several variants
+    // - Num op Num
+    // - Num op uint32_t
+    // - uint32_t op Num
+    // TBD integral variants with friend operator (instead of conversion to Num which takes time)
+    #define MAKE_OP(OP) \
+        Num operator OP (const Num& rhs); \
+        Num operator OP (const uint32_t& rhs); \
+        Num& operator OP##= (const Num& rhs); \
+        Num& operator OP##= (const uint32_t& rhs);
+
+    MAKE_OP(+)
+    MAKE_OP(-)
+    MAKE_OP(*)
+    MAKE_OP(/)
+
+    // divmod instruction that returns both remainder and quotient
+    void divmod(const Num& rhs, Num& quotient, Num& remainder);
+    uint32_t divmod(uint32_t rhs, Num& quotient);
+
+    #if 0
     // Math by a single "digit"
     Num operator+(const uint32_t& rhs);
     Num operator-(const uint32_t& rhs);
     Num operator*(const uint32_t& rhs);
     Num operator/(const uint32_t& rhs);
     Num operator%(const uint32_t& rhs);
+    Num operator^(const uint32_t& rhs); // exponentiation
 
     Num& operator+=(const uint32_t& rhs);
     Num& operator-=(const uint32_t& rhs);
     Num& operator*=(const uint32_t& rhs);
     Num& operator/=(const uint32_t& rhs);
     Num& operator%=(const uint32_t& rhs);
+    Num& operator^=(const uint32_t& rhs); // exponentiation
 
     // Arbitrary math - the Num result grows as needed to hold the
     // full result.
@@ -71,19 +106,26 @@ public:
     Num operator*(const Num& rhs);
     Num operator/(const Num& rhs);
     Num operator%(const Num& rhs);
+    Num operator^(const Num& rhs); // exponentiation
 
     Num& operator+=(const Num& rhs);
     Num& operator-=(const Num& rhs);
     Num& operator*=(const Num& rhs);
     Num& operator/=(const Num& rhs);
     Num& operator%=(const Num& rhs);
+    Num& operator^=(const Num& rhs); // exponentiation
 
-    // divmod instruction that returns both remainder and quotient
-    void divmod(const Num& rhs, Num& quotient, Num& remainder);
-    uint32_t divmod(uint32_t rhs, Num& quotient);
+    bool operator==(const Num& rhs);
+    bool operator!=(const Num& rhs);
+
+    bool operator==(const int rhs);
+    bool operator!=(const int rhs);
+
+    Num& operator>>=(const int rhs);
 
     // Chunk-size read and write to the underlying storage, for
     // setting larger-sized values without parsing a string
+    // (will grow string, be careful)
     uint32_t operator [](int i) const; // read
     uint32_t& operator [](int i); // write
 
@@ -97,36 +139,99 @@ public:
     // Convert Num to string
     int to_cstring(char* p, int len, int base=10);
 
-    // Size of current number in bytes
-    int len() const;
-
     // Sign of number
-    int sign() const;
+    enum class Sign
+    {
+        Positive = 0,
+        Negative = 1
+    };
+
+    Sign sign() const { return data.sign ? Sign::Negative : Sign::Positive; }
+    #endif
+
+    void from_int64(long long v);
+    void from_uint64(unsigned long long uv);
 
 //private:
-    void grow(int16_t amt = 1);
-    void shrink(int16_t amt = 1);
-    void resize(int16_t size);
+
+    // Grow a Num by the indicated number of digits. This is an internal function
+    // used by math operations. This must eventually be followed by trim(), because
+    // a Num must be left in normalized form, where the most-significant digit is
+    // non-zero.
+    uint32_t* grow(int amt = 1);
+
+    // Shrink a Num by the indicated number of digits. This is an internal function
+    // used by math operations. This will perform a modulo to digit^len, where len
+    // is the length of Num at the end of the shrink operation.
+    uint32_t* shrink(int amt = 1);
+
+    // Resize a Num. This is an internal function.
+    uint32_t* resize(int size);
+
+    // Call trim to make sure the Num is in canonical form - the most significant digit
+    // is non-zero, or the Num is zero length.
     void trim();
 
+    // Return the capacity of the Num. This is an internal function used by operators
+    // and buffer management.
+    int capacity() { return data.local ? smallbufsize : big.bufsize; }
+
+    // Size of current number in digits
+    int len() const { return data.len; }
+
+    // Return a pointer to the start of Num storage. A Num is stored as an array of
+    // digits. The non-template version of Num is hardcoded to `uint32_t` as the digit
+    // size.
+    uint32_t* databuffer() { return data.local ? small.buf : big.buf; }
+    const uint32_t* cdatabuffer() const { return data.local ? small.buf : big.buf; }
+
+    // Add lhs + rhs ignoring sign
     Num& addto(const Num& rhs);
+
+    // Subtract lhs - rhs ignoring sign and assuming lhs >= rhs
     Num& subfrom(const Num& rhs);
+
+    // Compare lhs <=> rhs:
+    //  -1 if lhs  < rhs
+    //   0 if lhs == rhs
+    //   1 if lhs  > rhs
     int magcmp(const Num& rhs);
     int magcmp(const uint32_t& digit);
 
-	byte raw[32];
-    // static_assert(sizeof(raw) == 32, ""); // this is a compile error in VS2017 15.4.1
+    static constexpr int smallbufsize = 7;
+    union
+    {
+        struct
+        {
+            uint32_t local : 1; // set to 1 for small data optimization
+            int32_t sign : 1; // 0 for positive, -1 for negative
+            int32_t len : 30; // this is too big, but there's nothing else to use it for yet
+        } data;
+        struct
+        {
+            uint32_t local : 1; // set to 1 for small data optimization
+            int32_t sign : 1; // 0 for positive, -1 for negative
+            int32_t len : 30; // this is too big, but there's nothing else to use it for yet
+            uint32_t buf[smallbufsize];
+        } small;
+        struct
+        {
+            uint32_t local : 1; // set to 0 for big data
+            int32_t sign : 1; // 0 for positive, -1 for negative
+            int32_t len : 30;
+            int32_t bufsize;
+            uint32_t* buf;
+        } big;
+    };
 };
 
-static_assert(sizeof(Num::raw) == 32, "");
-
-// TBD can we create a make_Num helper that creates a large Num with
-// contiguous storage above and beyond the default? Can we create
-// different-sized local Num, maybe with a template parameter?
+static_assert(sizeof(Num::small) == 32, "Num::small unexpected size");
+static_assert(sizeof(Num::small) >= sizeof(Num::big), "Num::small data too small!");
 
 // --------------------------------------------------------------------------------------
 // Internal Num definition
 
+#if 0
 struct NumData
 {
     int16_t len;
@@ -134,29 +239,13 @@ struct NumData
     uint32_t data[7];
 };
 static_assert(sizeof(NumData) <= sizeof(Num::raw), "NumData misdefined");
+#endif
 
 template<typename WORD>
 bool MultiwordDivide(
     WORD* quotient, WORD* remainder,
     const WORD* dividend, const WORD* divisor,
     int dividendSize, int divisorSize);
-
-// TBD add dynamic data sizing
-// TBD Small Object Optimization
-
-// For small object optimization, there are several sizes to consider
-// 16 bytes: 1 bit small-object, 1 bit sign, 6 bits length, 15 bytes number
-// 24 bytes: 1 bit small-object, 1 bit sign, 6 bits length, 23 bytes number
-// 32 bytes 1 bit small-object, 1 bit sign, 6 bits length, 31 bytes number
-//
-// Note that a pointer is 8 bytes on 64-bit architecture. We probably want to think
-// in units of pointer-size, so that means 16-bytes is the smallest possible.
-// 16 bytes = 120 bits of number, 24 bytes = 184 bits of number, 32 bytes = 248 bits of number
-// 2^120 = 1.32e36 (approximately the range of 32-bit float)
-// 2^184 = 2.45e55
-// 2^248 = 4.52e74
-// 64-bit float has range 1e-308 to 1e308 but only 53 bits of precision
-// 100! = 9.3e157
 
 //
 // Math terms
