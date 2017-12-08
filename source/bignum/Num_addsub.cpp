@@ -77,6 +77,7 @@ Num& Num::operator+=(const Num& rhs)
 
 // Num + digit
 // Add a single 'digit' to a Num
+#if 0
 Num Num::operator+(const uint32_t& digit)
 {
     Num temp{*this};
@@ -109,6 +110,7 @@ Num& Num::operator+=(const uint32_t& digit)
 
     return *this;
 }
+#endif
 
 // --------------------------------------------------------------------------------------
 
@@ -271,6 +273,7 @@ Num& Num::operator-=(const Num& rhs)
 
 // Num - digit
 // Subtract a single 'digit' from a Num
+#if 0
 Num Num::operator-(const uint32_t& digit)
 {
     Num temp{*this};
@@ -284,3 +287,4 @@ Num& Num::operator-=(const uint32_t& digit)
     // do this in the log run (subtracting signed vs unsigned is odd).
     return operator-=(Num{digit});
 }
+#endif

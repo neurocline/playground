@@ -6,6 +6,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <string_view>
 
 // Get definition of std::byte
 #if defined(_MSVC_LANG) && _MSVC_LANG > 201402
@@ -39,24 +41,32 @@ public:
     void reserve(int size);
 
     // Construct Num from integral primitives
+    // Do we really need int and unsigned int?
     Num(int v) noexcept;
     Num(unsigned int v) noexcept;
     Num(long long v) noexcept;
     Num(unsigned long long v) noexcept;
 
     // Copy assignment Num from integral primitives
+    // Do we really need int and unsigned int?
     Num& operator=(int v) noexcept;
     Num& operator=(unsigned int v) noexcept;
     Num& operator=(long long v) noexcept;
     Num& operator=(unsigned long long v) noexcept;
 
-    #if 0
     // Construct a Num from a c-string (note that this can conflict with the long long
     // constructor, due to implicit promotion rules - get rid of it in favor of std::string
     // and string_view constructors?)
     Num(char const* p, int base=10);
 
+    // Construct from a string_view
+    Num(const std::string_view& s, int base=10);
+
+    // Construct from a string
+    Num(const std::string& s, int base=10);
+
     // Conversion operators (will return mod 2^32 or 2^64)
+    #if 0
     explicit operator int() const;
     explicit operator unsigned int() const;
     explicit operator long long() const;
@@ -70,56 +80,37 @@ public:
     // TBD integral variants with friend operator (instead of conversion to Num which takes time)
     #define MAKE_OP(OP) \
         Num operator OP (const Num& rhs); \
-        Num operator OP (const uint32_t& rhs); \
         Num& operator OP##= (const Num& rhs); \
-        Num& operator OP##= (const uint32_t& rhs);
+        /*Num operator OP (const uint32_t& rhs);*/ \
+        /*Num& operator OP##= (const uint32_t& rhs)*/ \
+        ;
 
     MAKE_OP(+)
     MAKE_OP(-)
     MAKE_OP(*)
     MAKE_OP(/)
+    MAKE_OP(%)
+    MAKE_OP(^)
 
     // divmod instruction that returns both remainder and quotient
     void divmod(const Num& rhs, Num& quotient, Num& remainder);
-    uint32_t divmod(uint32_t rhs, Num& quotient);
+    //uint32_t divmod(uint32_t rhs, Num& quotient);
 
     #if 0
     // Math by a single "digit"
-    Num operator+(const uint32_t& rhs);
-    Num operator-(const uint32_t& rhs);
-    Num operator*(const uint32_t& rhs);
-    Num operator/(const uint32_t& rhs);
     Num operator%(const uint32_t& rhs);
     Num operator^(const uint32_t& rhs); // exponentiation
 
-    Num& operator+=(const uint32_t& rhs);
-    Num& operator-=(const uint32_t& rhs);
-    Num& operator*=(const uint32_t& rhs);
-    Num& operator/=(const uint32_t& rhs);
     Num& operator%=(const uint32_t& rhs);
     Num& operator^=(const uint32_t& rhs); // exponentiation
 
     // Arbitrary math - the Num result grows as needed to hold the
     // full result.
-    Num operator+(const Num& rhs);
-    Num operator-(const Num& rhs);
-    Num operator*(const Num& rhs);
-    Num operator/(const Num& rhs);
     Num operator%(const Num& rhs);
     Num operator^(const Num& rhs); // exponentiation
 
-    Num& operator+=(const Num& rhs);
-    Num& operator-=(const Num& rhs);
-    Num& operator*=(const Num& rhs);
-    Num& operator/=(const Num& rhs);
     Num& operator%=(const Num& rhs);
     Num& operator^=(const Num& rhs); // exponentiation
-
-    bool operator==(const Num& rhs);
-    bool operator!=(const Num& rhs);
-
-    bool operator==(const int rhs);
-    bool operator!=(const int rhs);
 
     Num& operator>>=(const int rhs);
 
@@ -128,6 +119,14 @@ public:
     // (will grow string, be careful)
     uint32_t operator [](int i) const; // read
     uint32_t& operator [](int i); // write
+    #endif
+
+    // Compare lhs <=> rhs:
+    //  -1 if lhs  < rhs
+    //   0 if lhs == rhs
+    //   1 if lhs  > rhs
+    int magcmp(const Num& rhs) const;
+    int magcmp(const uint32_t& digit) const;
 
     // Convert Num to integer
     uint64_t to_uint64() const; // modulo 2^64
@@ -135,10 +134,14 @@ public:
 
     // Convert string to Num
     bool from_cstring(char const* p, int base=10);
+    const Num& from_string(const std::string_view& s, int base=10);
+    const Num& from_string(const std::string& s, int base=10);
 
     // Convert Num to string
     int to_cstring(char* p, int len, int base=10);
+    std::string to_string(int base=10);
 
+    #if 0
     // Sign of number
     enum class Sign
     {
@@ -177,7 +180,7 @@ public:
     int capacity() { return data.local ? smallbufsize : big.bufsize; }
 
     // Size of current number in digits
-    int len() const { return data.len; }
+    //int len() const { return data.len; }
 
     // Return a pointer to the start of Num storage. A Num is stored as an array of
     // digits. The non-template version of Num is hardcoded to `uint32_t` as the digit
@@ -191,16 +194,20 @@ public:
     // Subtract lhs - rhs ignoring sign and assuming lhs >= rhs
     Num& subfrom(const Num& rhs);
 
-    // Compare lhs <=> rhs:
-    //  -1 if lhs  < rhs
-    //   0 if lhs == rhs
-    //   1 if lhs  > rhs
-    int magcmp(const Num& rhs);
-    int magcmp(const uint32_t& digit);
+    // Clear out part of a Num
+    // TBD get rid of the need for this
+    //void clear_(int s, int e) { memset(databuffer()+s, 0, (e - s)*sizeof(uint32_t)); }
+    //void dup_(uint32_t* dest) { memcpy(dest, databuffer(), data.len*sizeof(uint32_t)); }
+
+    void clear_digits(int b, int e) { memset(databuffer()+b, 0, (e - b)*sizeof(uint32_t)); }
+    void copy_digits(uint32_t* dest, const uint32_t* src, int digits) {
+        memcpy(dest, src, digits * sizeof(uint32_t));
+    }
 
     static constexpr int smallbufsize = 7;
     union
     {
+        uint32_t prefix; // this is local + sign + len
         struct
         {
             uint32_t local : 1; // set to 1 for small data optimization
@@ -225,27 +232,35 @@ public:
     };
 };
 
+
+inline bool operator==(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) == 0; }
+inline bool operator!=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) != 0; }
+inline bool operator<(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) < 0; }
+inline bool operator<=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) <= 0; }
+inline bool operator>(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) > 0; }
+inline bool operator>=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) >= 0; }
+
 static_assert(sizeof(Num::small) == 32, "Num::small unexpected size");
 static_assert(sizeof(Num::small) >= sizeof(Num::big), "Num::small data too small!");
 
 // --------------------------------------------------------------------------------------
 // Internal Num definition
 
-#if 0
-struct NumData
-{
-    int16_t len;
-    int16_t sign;
-    uint32_t data[7];
-};
-static_assert(sizeof(NumData) <= sizeof(Num::raw), "NumData misdefined");
-#endif
-
+// quotient, remainder = dividend / divisor
+//
+// quotient - output (must be at least dividendSize - divisorSize + 1)
+// remainder - output (must be at least divisorSize)
+// dividend - input (dividendSize WORDs)
+// divisor - input (cdivisorSize WORDs)
+// dividendSize - number of WORDs in dividend
+// divisorSize - number of WORDs in divisor
+// scratch - n+m+1 WORDs (can be nullptr if 16 WORDS or less)
 template<typename WORD>
 bool MultiwordDivide(
     WORD* quotient, WORD* remainder,
     const WORD* dividend, const WORD* divisor,
-    int dividendSize, int divisorSize);
+    int dividendSize, int divisorSize,
+    WORD* scratch = nullptr);
 
 //
 // Math terms

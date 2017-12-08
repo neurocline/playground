@@ -104,7 +104,7 @@ template<typename WORD>
 bool MultiwordDivide(
     WORD* quotient, WORD* remainder,
     const WORD* dividend, const WORD* divisor,
-    int dividendSize, int divisorSize)
+    int dividendSize, int divisorSize, WORD* scratch)
 {
     using mathType = typename ContainsType<WORD>::type;
     const mathType b = ContainsType<WORD>::base;
@@ -138,6 +138,7 @@ bool MultiwordDivide(
 
     // Set up temps for holding normalized divisor and dividend
     // TBD allocate if we need more space
+    #if 0
     const int unSize = 8;
     const int vnSize = 8;
     WORD un[unSize];
@@ -147,9 +148,22 @@ bool MultiwordDivide(
 
     if (divisorSize > vnSize || dividendSize+1 > unSize)
         return false;
+    #else
 
     int n = divisorSize;
     int m = dividendSize;
+
+    WORD iscratch[16];
+    WORD* un;
+    WORD* vn;
+    if (scratch == nullptr && n+m+1 <= 16)
+        scratch = iscratch;
+    else if (scratch == nullptr)
+        return false; // fail, need more storage (TBD make this allocate)
+
+    vn = scratch;
+    un = vn + n;
+    #endif
 
     // Normalize divisor so that its high-order bit is set to 1.
     int s = ContainsType<WORD>::LeadingZeros(v[n-1]);
@@ -238,4 +252,4 @@ template
 bool MultiwordDivide<uint32_t>(
     uint32_t* quotient, uint32_t* remainder,
     const uint32_t* dividend, const uint32_t* divisor,
-    int dividendSize, int divisorSize);
+    int dividendSize, int divisorSize, uint32_t* scratch);

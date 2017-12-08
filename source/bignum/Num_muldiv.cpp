@@ -14,6 +14,18 @@
 //
 // Relatively straightforward - do each pair of multiplies on the digits, and add
 // them all together.
+//
+// multiplicand (lhs):       a   b   c
+// multiplier (rhs):             d   e
+//                          ----------
+//                          ae  be  ce
+//                      ad  bd  cd
+// ad * B^3 + (ae + bd) * B^2 + (be + cd) * B^1 + ce * B^0
+//
+// we accumulate each partial into the buffer. We need zeros for |multiplicand| digits
+// so that we can accumulate into a single buffer. We don't need more zeros because the
+// carry out of each iteration through the multiplier produces a digit higher than
+// any seen to that point, so we can just store it rather than add it.
 // ======================================================================================
 
 // Num * Num
@@ -34,20 +46,19 @@ Num& Num::operator*=(const Num& rhs)
     auto candbuf = multiplicand.cdatabuffer();
     auto plierbuf = rhs.cdatabuffer();
 
-    // Now wipe out our lhs and resize it to hold the result - m digits from lhs, and
-    // n digits from rhs.
-    int m = multiplicand.data.len;
-    int n = rhs.data.len;
+    // Now wipe out our lhs and resize it to hold the result - m digits from rhs, and
+    // m digits from lhs (we may end up with less, depending on the actual multiply).
+    int m = rhs.data.len;
+    int n = multiplicand.data.len;
 
-    shrink(data.len);
-    grow(m + n);
+    resize(m + n);
+    clear_digits(0, n); // initialize |multiplicand| digits to zero (initial partial sums)
     auto lbuf = databuffer();
 
-    // Multiply each digit of the multiplicand against the multiplier, adding the new
-    // partial sum to the result.
+    // Loop through each digit of the multiplier
     for (int j = 0; j < m; j++)
     {
-        // Multiply each digit of the multiplier against this digit of the multiplicand,
+        // Multiply each digit of the multiplicand against this digit of the multiplier,
         // add new digits to the result, and save the carry into the next digit.
         unsigned long long carry = 0;
         for (int i = 0; i < n; i++)
@@ -57,7 +68,7 @@ Num& Num::operator*=(const Num& rhs)
             // = 2^(2n) - 2*(2^n-1) + 1
             // = 2^(2n) - 2^n + 1
             // = 2^(2n-1) + 1 < 2^(2n)-1
-            carry = carry + uint64_t(lbuf[i+j]) + uint64_t(candbuf[j]) * uint64_t(plierbuf[i]);
+            carry = carry + uint64_t(lbuf[i+j]) + uint64_t(plierbuf[j]) * uint64_t(candbuf[i]);
             lbuf[i+j] = (uint32_t) carry;
             carry >>= 32;
         }
@@ -78,6 +89,7 @@ Num& Num::operator*=(const Num& rhs)
 
 // Num * digit
 // Create a temp and then just call operator*=()
+#if 0
 Num Num::operator*(const uint32_t& rhs)
 {
     Num temp{*this};
@@ -107,6 +119,7 @@ Num& Num::operator*=(const uint32_t& rhs)
 
     return *this;
 }
+#endif
 
 // ======================================================================================
 // Divide
@@ -124,8 +137,10 @@ Num Num::operator/(const Num& rhs)
 
 // Num / Num
 // Grow/shrink the lhs Num as needed.
+// TBD call divmod instead of duplicating code here
 Num& Num::operator/=(const Num& rhs)
 {
+#if 0
     // If we are dividing into zero, it's always going to be zero
     if (data.len == 0)
         return *this;
@@ -158,10 +173,19 @@ Num& Num::operator/=(const Num& rhs)
     // The sign is positive if both signs are equal, otherwise negative
     data.sign = (data.sign == rhs.data.sign) ? 0 : -1;
     return *this;
+#else
+    Num quotient;
+    Num remainder;
+    divmod(rhs, quotient, remainder);
+    *this = quotient;
+
+    return *this;
+#endif
 }
 
 // Num / uint32_t
 // Create a temp and just call operator /=()
+#if 0
 Num Num::operator/(const uint32_t& rhs)
 {
     Num temp{*this};
@@ -175,6 +199,7 @@ Num& Num::operator/=(const uint32_t& rhs)
     Num temp{rhs};
     return operator/=(temp);
 }
+#endif
 
 // Do both divide and remainder at the same time
 // TBD maybe we should return quotient? Or tuple of quotient, remainder?
@@ -190,14 +215,20 @@ void Num::divmod(const Num& rhs, Num& quotient, Num& remainder)
 
     // resize quotient and remainder as needed
     // these are max sizes, the real quotient and remainder could be smaller
-    int dividendSize = len();
-    int divisorSize = rhs.len();
-    quotient.resize(int16_t(dividendSize - divisorSize + 1));
-    remainder.resize(int16_t(divisorSize));
+    int dividendSize = data.len;
+    int divisorSize = rhs.data.len;
+    quotient.resize(dividendSize - divisorSize + 1);
+    remainder.resize(divisorSize);
+
+    int scratchSize = divisorSize + dividendSize + 1;
+    uint32_t* scratch = nullptr;
+    if (scratchSize > 16)
+        scratch = new uint32_t[scratchSize];
 
     bool ok = MultiwordDivide<uint32_t>(
-        quotient.databuffer(), remainder.databuffer(), databuffer(), rhs.cdatabuffer(), data.len, rhs.data.len);
+        quotient.databuffer(), remainder.databuffer(), databuffer(), rhs.cdatabuffer(), data.len, rhs.data.len, scratch);
     assert(ok);
+    delete[] scratch;
     if (!ok)
         return; // this is not supposed to ever happen
 
@@ -206,6 +237,7 @@ void Num::divmod(const Num& rhs, Num& quotient, Num& remainder)
 }
 
 // Num / uint32_t
+#if 0
 uint32_t Num::divmod(uint32_t rhs, Num& quotient)
 {
     quotient.resize(data.len);
@@ -214,7 +246,7 @@ uint32_t Num::divmod(uint32_t rhs, Num& quotient)
     auto qbuf = quotient.databuffer();
 
     uint32_t rem = 0;
-    for (int i = len() - 1; i >= 0; --i)
+    for (int i = data.len - 1; i >= 0; --i)
     {
         uint32_t dig = uint32_t((rem * 0x1'0000'0000LL + buf[i]) / rhs);
         rem = uint64_t(buf[i]) - uint64_t(dig * rhs);
@@ -224,3 +256,4 @@ uint32_t Num::divmod(uint32_t rhs, Num& quotient)
     quotient.trim();
     return rem;
 }
+#endif

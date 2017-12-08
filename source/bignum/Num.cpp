@@ -20,20 +20,21 @@
 // Default constructor - create empty Num (zero-length small Num)
 Num::Num()
 {
-    #if 1
+    #ifndef NDEBUG
+    memset(&small, 0, sizeof(small));
+    #endif
+
     // There are two approaches here. The first is the minimalist-time approach, which
     // only initializes the bare minumum. This matches the design of C, in which stack
     // variables aren't initialized to a specific value, just to a legal value.
+#if 0
     data.local = 1;
     small.sign = 0;
     small.len = 0;
-
-    #else
-    // The other approach is to completely initialize it. This is probably less code,
-    // but likely runs a little slower.
-    memset(&small, 0, sizeof(small));
+#else
+    prefix = 0;
     data.local = 1;
-    #endif
+#endif
 
     // All of this points out something interesting with our design. Maybe we should
     // make the first bit be a "nonlocal" bit so it can be initialized to 0. And really,
@@ -52,6 +53,7 @@ Num::~Num() noexcept
 // Copy constructor (only used on new unconstructed object)
 Num::Num(const Num& rhs) noexcept
 {
+#if 0
     // If small data on rhs, then no allocation needed on new object, just copy the
     // old one completely. This will on average copy too much, but we don't care,
     // trying to figure out how much to copy is probably slower.
@@ -65,7 +67,8 @@ Num::Num(const Num& rhs) noexcept
         data.local = 1;
         small.sign = rhs.big.sign;
         small.len = rhs.data.len;
-        memcpy(small.buf, rhs.big.buf, data.len*4);
+        //memcpy(small.buf, rhs.big.buf, data.len*4);
+        copy_digits(small.buf, rhs.small.buf, small.len); // wow, this was a bug
     }
 
     // We have big data on rhs, so copy metadata and create a new buffer
@@ -75,8 +78,37 @@ Num::Num(const Num& rhs) noexcept
         memcpy(&big, &rhs.big, sizeof(big));
         big.bufsize = big.len;
         big.buf = new uint32_t[big.bufsize];
-        memcpy(big.buf, rhs.big.buf, big.len*4);
+        //memcpy(big.buf, rhs.big.buf, big.len*4);
+        copy_digits(big.buf, rhs.big.buf, rhs.big.len);
     }
+#else
+    // Copy the prefix: local + size + len
+    prefix = rhs.prefix;
+
+    // If the rhs is a small Num, just copy the whole thing, since a new Num is
+    // a small Num (no allocations needed)
+    if (rhs.data.local)
+        // When copying small data, we don't need allocation, we have a local buffer.
+        copy_digits(small.buf, rhs.small.buf, small.len);
+
+    // If the rhs Num has a big buffer but a small length, then we "shrink" it.
+    // We do this because the canonical way to shrink buffers is to copy to a new
+    // object.
+    else if (rhs.data.len <= smallbufsize)
+    {
+        prefix = rhs.prefix;
+        data.local = 1;
+        copy_digits(small.buf, rhs.big.buf, rhs.data.len);
+    }
+
+    // Otherwise, when copying big data, create a new buffer to copy into.
+    else
+    {
+        big.bufsize = big.len;
+        big.buf = new uint32_t[big.bufsize];
+        copy_digits(big.buf, rhs.big.buf, rhs.big.len);
+    }
+#endif
 }
 
 // ======================================================================================
@@ -91,6 +123,7 @@ Num& Num::operator=(const Num& rhs) noexcept
     if (this == &rhs)
         return *this; // do we REALLY need to be paranoid like this? I mean, really...
 
+#if 0
     // Copying from a small Num
     if (rhs.data.local)
     {
@@ -104,7 +137,8 @@ Num& Num::operator=(const Num& rhs) noexcept
         {
             big.sign = rhs.small.sign;
             big.len = rhs.small.len;
-            memcpy(big.buf, rhs.small.buf, rhs.small.len*4);
+            //memcpy(big.buf, rhs.small.buf, rhs.small.len*4);
+            copy_digits(big.buf, rhs.small.buf, rhs.small.len);
         }
     }
 
@@ -132,6 +166,40 @@ Num& Num::operator=(const Num& rhs) noexcept
         big.len = rhs.big.len;
         memcpy(big.buf, rhs.big.buf, big.len*4);
     }
+#else
+    // This differs from construction in that we will keep an overlarge buffer;
+    // this is one of the two cases where an allocated buffer can hold data less
+    // than smallbufsize in length (the other is from math operators that produce
+    // a smaller result than the lhs operand)
+
+    // See if the new number will fit in the current space.
+    int bufsize = data.local ? smallbufsize : big.bufsize;
+    if (rhs.data.len > bufsize)
+    {
+        // If we have nonlocal data, free it; it's not big not, so we will
+        // allocate more.
+        if (!data.local)
+        {
+            delete[] big.buf;
+            data.local = 1; // temporarily a small Num
+        }
+
+        // If the data won't fit into a local buffer, allocate a new big one.
+        if (rhs.data.len > smallbufsize)
+        {
+            data.local = 0;
+            big.bufsize = rhs.data.len;
+            big.buf = new uint32_t[big.bufsize];
+        }
+    }
+
+    // Copy the digits
+    copy_digits(databuffer(), rhs.cdatabuffer(), rhs.data.len);
+
+    // Copy length and sign
+    data.sign = rhs.data.sign;
+    data.len = rhs.data.len;
+#endif
 
     return *this;
 }
@@ -187,7 +255,7 @@ void Num::from_uint64(unsigned long long uv)
     if (!data.local)
     {
         delete[] big.buf;
-        data.local = 0;
+        data.local = 1;
     }
 
     int i = 0;
@@ -276,6 +344,8 @@ Num::operator unsigned long long() const
     return to_uint64();
 }
 
+#endif
+
 // Convert a Num to an unsigned long long value (modulo 2^64)
 uint64_t Num::to_uint64() const
 {
@@ -321,14 +391,16 @@ int Num::to_cstring(char* p, int buflen, int base)
 
     do
     {
-        uint32_t r = t.divmod(base, quotient);
+        //uint32_t r = t.divmod(base, quotient);
+        t.divmod(base, quotient, remainder);
+        auto r = remainder.to_int64();
         char ch = '0' + (char) r;
         if (r > 9) ch += ('A' - '9' + 1); // turn 10+ into 'A'+
 
         PUT(ch);
         t = quotient; // replace with pointer swap
         t.trim();
-    } while (t.len() != 0);
+    } while (t.data.len != 0);
 
     PUT(0)
 
@@ -363,7 +435,30 @@ bool Num::from_cstring(char const* p, int base)
     return true;
 }
 
-#endif
+// Convert string_view to Num
+// This assumes something that maps to UTF-8 as far as 0-9 and A-Z/a-z go
+// This also currently does no error checking so will produce garbage Num values
+// from garbage strings.
+const Num& Num::from_string(const std::string_view& s, int base)
+{
+    resize(0);
+
+    for (char ch : s)
+    {
+        // convert '0'...'9' to 0..9
+        int digit = ch - '0';
+
+        // If we have >9, then assume 'A'...'Z' or 'a'...'z'
+        // and convert to 10...35
+        if (digit >= 10)
+            digit = (ch & 0x0f) + 9;
+
+        operator*=(uint32_t(base));
+        operator+=(uint32_t(digit));
+    }
+
+    return *this;
+}
 
 // ======================================================================================
 // Buffer management
@@ -477,15 +572,15 @@ void Num::trim()
 //   -1: Num < Num
 //    0: Num == Num
 //   +1: Num > Num
-int Num::magcmp(const Num& rhs)
+int Num::magcmp(const Num& rhs) const
 {
     // Trivially, if the numbers are different lengths, the longer number is
     // greater than the shorter number
-    if (len() != rhs.len())
-        return len() > rhs.len() ? 1 : -1;
+    if (data.len != rhs.data.len)
+        return data.len > rhs.data.len ? 1 : -1;
 
     // Compare magnitude digits from greater to lesser
-    auto ld = databuffer();
+    auto ld = cdatabuffer();
     auto rd = rhs.cdatabuffer();
     for (int i = data.len - 1; i >= 0; --i)
     {
@@ -500,15 +595,15 @@ int Num::magcmp(const Num& rhs)
 // Num <=> digit
 // question - what does it mean to comparing a signed Num vs an unsigned digit?
 // maybe this is actually nonsense.
-int Num::magcmp(const uint32_t& digit)
+int Num::magcmp(const uint32_t& digit) const
 {
     // Check edge cases first
-    if (len() > 1)
+    if (data.len > 1)
         return 1;
-    else if (len() == 0)
+    else if (data.len == 0)
         return digit == 0 ? 0 : -1;
 
-    auto ld = databuffer();
+    auto ld = cdatabuffer();
     return ld[0] > digit ? 1 : ld[0] < digit ? -1 : 0;
 }
 

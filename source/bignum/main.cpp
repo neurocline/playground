@@ -115,7 +115,8 @@ TEST_CASE("Num - big 5 (constructors and copy assignment operators)", "[Num]")
     Num num16;
     num16.reserve(16);
     REQUIRE(num16.big.bufsize == 16);
-    memset(num16.big.buf, 0, num16.big.bufsize*4);
+    //memset(num16.big.buf, 0, num16.big.bufsize*4);
+    num16.clear_digits(0, num16.big.bufsize);
     num16.big.len = 16;
     num16.big.buf[15] = 0x9988'7766L;
     REQUIRE(num16.data.local == 0);
@@ -125,7 +126,8 @@ TEST_CASE("Num - big 5 (constructors and copy assignment operators)", "[Num]")
     Num num8_16;
     num8_16.reserve(16);
     REQUIRE(num8_16.big.bufsize == 16);
-    memset(num8_16.big.buf, 0, num8_16.big.bufsize*4);
+    //memset(num8_16.big.buf, 0, num8_16.big.bufsize*4);
+    num8_16.clear_digits(0, num8_16.big.bufsize);
     num8_16.big.len = 8;
     num8_16.big.buf[7] = 0x1234'5678L;
     REQUIRE(num8_16.data.local == 0);
@@ -381,6 +383,69 @@ TEST_CASE("Num - multiply and divide", "[Num]")
     REQUIRE(result.data.local == 1);
     REQUIRE(result.small.len == 1);
     REQUIRE(result.small.buf[0] == 7);
+
+    // shouldn't compile yet
+    multiplicand = 1;
+    result = multiplicand * 0x7FFF'FFFF'FFFF'FFFFLL;
+
+    // Test multiply and divide
+    Num factors[10];
+    factors[0] = 65537;
+    REQUIRE(factors[0].data.len == 1);
+    REQUIRE(factors[0].small.buf[0] == 65537);
+
+    for (int i = 1; i < 10; i++)
+    {
+        factors[i] = factors[i-1] * factors[i-1];
+        REQUIRE(factors[i].databuffer()[factors[i].data.len-1] != 0);
+    }
+
+    Num results[10];
+    for (int i = 1; i < 10; i++)
+    {
+        results[i-1] = factors[i] / factors[i-1];
+        REQUIRE(factors[i-1] == results[i-1]);
+    }
+}
+
+TEST_CASE("comparisons", "[Num]")
+{
+    Num lhs(1);
+    Num rhs(1);
+    REQUIRE(lhs == rhs);
+
+    rhs = 2;
+    REQUIRE(lhs != rhs);
+}
+// "0FFFFFFF'FFFFFFFF'FFFFFFFF'FFFFFFFF'FFFFFFFF'FFFFFFFF'FFFFFFFF'FFFFFFFF
+TEST_CASE("string to Num", "[Num]")
+{
+    std::string buf;
+    buf.reserve(32);
+
+    buf = "1";
+    Num n(1);
+    Num c;
+    for (int i = 0; i < 100; i++)
+    {
+        n *= 10;
+        buf += "0";
+        c.from_string(std::string_view(buf));
+
+        REQUIRE(n == c);
+    }
+
+    buf = "F";
+    n = 15;
+    for (int i = 0; i < 100; i++)
+    {
+        n = (n * 16) + 15;
+        buf += "F";
+        REQUIRE(int(buf.length()) == i + 2);
+        c.from_string(std::string_view(buf), 16);
+
+        REQUIRE(n == c);
+    }
 }
 
 // old tests
