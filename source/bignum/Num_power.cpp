@@ -9,6 +9,8 @@
 
 #include "Num.h"
 
+#if COMPILE_NUM
+
 #if 0
 
 Num Num::operator^(const Num& rhs)
@@ -45,4 +47,6 @@ Num& Num::operator^=(const Num& rhs)
 
     return y;
 }
+#endif
+
 #endif

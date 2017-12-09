@@ -5,8 +5,186 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "../catch.hpp"
 
-#include <cstring>
+//#include <cstring>
 
+TEST_CASE("NumBuffer - construct/destruct", "[NumBuffer]")
+{
+    SECTION("Simple default constructor")
+    {
+        NumBuffer buf;
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.sign == 0);
+        REQUIRE(buf.len == 0);
+    }
+
+    // Placement new should leave the internal buffer uninitialized, since the
+    // NumBuffer is empty.
+    SECTION("Placement new default constructor")
+    {
+        char v[sizeof(NumBuffer)];
+        memset(v, 255, sizeof(NumBuffer));
+        NumBuffer* buf = new(v) NumBuffer;
+
+        REQUIRE_FALSE(buf->nonlocal);
+        REQUIRE(buf->sign == 0);
+        REQUIRE(buf->len == 0);
+        REQUIRE(buf->buf[0] == 0xFFFFFFFF);
+        REQUIRE(buf->buf[NumBuffer::smallbufsize-1] == 0xFFFFFFFF);
+
+        // Destructor should put the object in an invalid state as well as removing
+        // any allocated memory
+        buf->nonlocal = 1;
+        buf->big.digits = new uint32_t[16];
+        buf->big.bufsize = 16;
+        buf->len = 16;
+
+        buf->~NumBuffer();
+        REQUIRE(buf->nonlocal);
+        REQUIRE(buf->big.digits == nullptr);
+    }
+
+    SECTION("Testing destructor")
+    {
+        NumBuffer buf;
+
+        buf.reserve(16);
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.big.bufsize == 16);
+        REQUIRE(buf.len == 0);
+        REQUIRE(buf.big.digits != nullptr);
+        buf.~NumBuffer();
+        REQUIRE(buf.big.digits == nullptr);
+    }
+}
+
+TEST_CASE("Num - buffer management", "[NumBuffer]")
+{
+    SECTION("Testing reserve")
+    {
+        // This is a small object
+        NumBuffer buf;
+        buf.reserve(1);
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.sign == 0);
+        REQUIRE(buf.len == 0);
+
+        buf.len = 1;
+        buf.buf[0] = 20;
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.buf[0] == 20);
+
+        // This is a small object
+        buf.reserve(2);
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.buf[0] == 20);
+        buf.len = 2;
+        buf.buf[1] = 21;
+
+        // This is the largest small object
+        buf.reserve(NumBuffer::smallbufsize);
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.len == 2);
+        REQUIRE(buf.buf[0] == 20);
+        REQUIRE(buf.buf[1] == 21);
+        buf.len = NumBuffer::smallbufsize;
+        buf.buf[NumBuffer::smallbufsize-1] = 29;
+
+        // This just became a big object
+        buf.reserve(NumBuffer::smallbufsize+1);
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == NumBuffer::smallbufsize);
+        REQUIRE(buf.big.digits[0] == 20);
+        REQUIRE(buf.big.digits[NumBuffer::smallbufsize-1] == 29);
+        buf.len = NumBuffer::smallbufsize+1;
+        buf.big.digits[NumBuffer::smallbufsize] = 30;
+
+        // This is a big object
+        buf.reserve(100);
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == NumBuffer::smallbufsize+1);
+        REQUIRE(buf.big.digits[0] == 20);
+        REQUIRE(buf.big.digits[NumBuffer::smallbufsize] == 30);
+    }
+
+    SECTION("Testing resize")
+    {
+        NumBuffer buf;
+        buf.resize(7);
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.sign == 0);
+        REQUIRE(buf.len == 7);
+
+        buf.buf[0] = 1;
+        buf.buf[6] = 7;
+        buf.resize(8);
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 8);
+        REQUIRE(buf.big.bufsize == 10);
+        REQUIRE(buf.big.digits[0] == 1);
+        REQUIRE(buf.big.digits[6] == 7);
+        buf.big.digits[7] = 8;
+    }
+}
+
+TEST_CASE("NumBuffer - copy/move", "[NumBuffer]")
+{
+    // Create a small object of length 1
+    NumBuffer small;
+    small.reserve(1);
+    small.len = 1;
+    small.buf[0] = 20;
+
+    // Create a large object of length 10
+    NumBuffer large;
+    large.reserve(10);
+    large.len = 10;
+    memset(large.big.digits, 0x66, 10*sizeof(uint32_t));
+
+    SECTION("Testing copy constructor of small object")
+    {
+        // Copy construct from a small object
+        NumBuffer buf(small);
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.buf[0] == 20);
+    }
+
+    SECTION("Testing copy constructor of large object")
+    {
+        // Copy construct from a large object
+        NumBuffer buf(large);
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 10);
+        REQUIRE(buf.big.digits[0] == 0x66666666);
+        REQUIRE(buf.big.digits[9] == 0x66666666);
+    }
+
+    SECTION("Testing move constructor of small object")
+    {
+        NumBuffer buf(std::move(small));
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.buf[0] == 20);
+
+        REQUIRE(small.nonlocal);
+        REQUIRE(small.big.digits == nullptr);
+    }
+
+    SECTION("Testing move constructor of large object")
+    {
+        NumBuffer buf(std::move(large));
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 10);
+        REQUIRE(buf.big.digits[0] == 0x66666666);
+        REQUIRE(buf.big.digits[9] == 0x66666666);
+
+        REQUIRE(large.nonlocal);
+        REQUIRE(large.big.digits == nullptr);
+    }
+}
+
+#if COMPILE_NUM
 TEST_CASE("Num - buffer management", "[Num]")
 {
     // Test reserve - it should preserve existing data
@@ -448,6 +626,8 @@ TEST_CASE("string to Num", "[Num]")
     }
 }
 
+#endif // #if COMPILE_NUM
+
 // old tests
 #if 0
 
@@ -680,6 +860,7 @@ TEST_CASE("Num - multiplication", "[Num]")
     REQUIRE(v[0] == 0x0000'0001L);
     REQUIRE(v[1] == 0xFFFF'FFFEL);
 }
+#endif
 
 #if 0
 TEST_CASE("Soak test", "[Num]")
@@ -738,6 +919,7 @@ TEST_CASE("Soak test", "[Num]")
 }
 #endif
 
+#if 0
 TEST_CASE("Num - to/from cstring", "[Num]")
 {
     Num v;

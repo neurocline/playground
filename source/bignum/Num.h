@@ -6,26 +6,98 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
+
+// ======================================================================================
+// NumBuffer
+// - a buffer class used by Num, implements the small storage optimization idiom. This
+//   is a public concrete class that is not meant to be inherited from, but embedded
+//   in some other object.
+//
+// This could become a class templated on the unit of storage, if we decide we
+// want Num<uint16_t> on some platforms
+
+class NumBuffer
+{
+public:
+    NumBuffer();
+
+    // Big 5: destructor, copy constructor, copy assignment operator
+    // (move constructor and move assignment operator are default generated)
+	~NumBuffer() noexcept;
+    NumBuffer(const NumBuffer& other) noexcept;            // Copy constructor
+    NumBuffer& operator=(const NumBuffer& other) noexcept; // Copy assignment operator
+    NumBuffer(NumBuffer&& rhs) noexcept;                   // Move constructor
+    NumBuffer& operator=(NumBuffer&& rhs) noexcept;        // Move assignment operator
+
+    // Resize a NumBuffer - this sets length and will grow capacity as needed.
+    // It returns the digits as a convenience, since the buffer may have moved.
+    uint32_t* resize(int size);
+
+    // Reserve space for a large NumBuffer. This can never ben used to shrink the size
+    // of a NumBuffer. Returns a pointer to the (new) buffer as a convenience.
+    uint32_t* reserve(int size);
+
+    // Return the size of the value in the NumBuffer
+    int length() { return len; }
+
+    // Return the capacity of the NumBuffer - the allocated storage
+    int capacity() { return nonlocal ? big.bufsize : smallbufsize; }
+
+    // Return a pointer to the start of NumBuffer storage.
+    // A NumBuffer is stored as an array of digits. The non-template version of
+    // NumBuffer is hardcoded to uint32_t as the digit size.
+    uint32_t* digits() { return nonlocal ? big.digits : buf; }
+    const uint32_t* cdigits() const { return nonlocal ? big.digits : buf; }
+
+    // Clear out part of a Num
+    // TBD get rid of the need for this
+    void clear_digits(int b, int e) { memset(digits()+b, 0, (e - b)*sizeof(uint32_t)); }
+
+    // Copy a number of digits from src to dest
+    // This is a function because it's too easy to forget to multiply by the size of the digit.
+    void copy_digits(uint32_t* dest, const uint32_t* src, int ndigits) {
+        memcpy(dest, src, ndigits * sizeof(uint32_t));
+    }
+
+    // Do the work of move construction/move assignment operator
+    void move_(NumBuffer& rhs);
+
+    // The size of a small NumBuffer in digits.
+    // At the moment, we have sizeof(NumBuffer) == 32
+    static constexpr int smallbufsize = 7;
+
+    uint32_t nonlocal : 1; // set to 0 for small data optimization
+    int32_t sign : 1; // 0 for positive, -1 for negative
+    int32_t len : 30; // this is too big, but there's nothing else to use it for yet
+
+    union
+    {
+        uint32_t buf[smallbufsize];
+
+        struct
+        {
+            int32_t bufsize;
+            uint32_t* digits; // want different name than buf to catch bugs
+        } big;
+    };
+};
+
+static_assert(sizeof(NumBuffer) == 32, "NumBuffer unexpected size");
+static_assert(sizeof(NumBuffer::buf) >= sizeof(NumBuffer::big), "NumBuffer::small data too small!");
+
+#define COMPILE_NUM 0
+#if COMPILE_NUM 
+
 #include <string>
 #include <string_view>
-
-// Get definition of std::byte
-#if defined(_MSVC_LANG) && _MSVC_LANG > 201402
-// - in Visual Studio as of VS 2017 15.3 and /std:c++17
-#include <cstddef>
-// - in clang/libc++ as of 5.0
-// Otherwise, create it
-#else
-namespace std {
-    enum class byte : unsigned char {};
-}
-#endif
 
 // ======================================================================================
 
 class Num
 {
 public:
+    #if 0
 	Num();
 
     // Big 5: destructor, copy constructor, copy assignment operator
@@ -35,6 +107,7 @@ public:
     Num& operator=(const Num& other) noexcept; // Copy assignment operator
     Num(Num&& rhs) = default;                  // Move constructor
     Num& operator=(Num&& rhs) = default;       // Move assignment operator
+    #endif
 
     // Reserve space for a large Num. This can never ben used to shrink the size
     // of a Num - to "garbage collect", copy to a new zero-length Num.
@@ -204,6 +277,7 @@ public:
         memcpy(dest, src, digits * sizeof(uint32_t));
     }
 
+    #if 0
     static constexpr int smallbufsize = 7;
     union
     {
@@ -230,8 +304,18 @@ public:
             uint32_t* buf;
         } big;
     };
+    #else
+    NumBuffer data;
+    #endif
 };
 
+#if 0
+static_assert(sizeof(Num::small) == 32, "Num::small unexpected size");
+static_assert(sizeof(Num::small) >= sizeof(Num::big), "Num::small data too small!");
+#else
+static_assert(sizeof(Num::data) == 32, "Num::small unexpected size");
+static_assert(sizeof(Num::data) >= sizeof(Num::data.big), "Num::small data too small!");
+#endif
 
 inline bool operator==(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) == 0; }
 inline bool operator!=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) != 0; }
@@ -239,9 +323,6 @@ inline bool operator<(const Num& lhs, const Num& rhs) noexcept { return lhs.magc
 inline bool operator<=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) <= 0; }
 inline bool operator>(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) > 0; }
 inline bool operator>=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) >= 0; }
-
-static_assert(sizeof(Num::small) == 32, "Num::small unexpected size");
-static_assert(sizeof(Num::small) >= sizeof(Num::big), "Num::small data too small!");
 
 // --------------------------------------------------------------------------------------
 // Internal Num definition
@@ -268,3 +349,5 @@ bool MultiwordDivide(
 // subtraction: minuend - subtrahend
 // multiply: multiplicand × multiplier
 // division: dividend ÷ divisor
+
+#endif // COMPILE_NUM

@@ -9,6 +9,8 @@
 #include <cassert>
 #include <cstring>
 
+#if COMPILE_NUM
+
 // ======================================================================================
 // Multiply
 //
@@ -257,3 +259,5 @@ uint32_t Num::divmod(uint32_t rhs, Num& quotient)
     return rem;
 }
 #endif
+
+#endif // COMPILE_NUM

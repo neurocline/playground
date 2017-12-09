@@ -11,12 +11,15 @@
 #include <cstring>
 #include <cstdint>
 
+#if COMPILE_NUM
+
 // ======================================================================================
 // Basic constructors
 // - the empty constructor makes a small Num that's zero-length
 // - copy constructors make the minimal-sized Num; this may shrink data
 // ======================================================================================
 
+#if 0
 // Default constructor - create empty Num (zero-length small Num)
 Num::Num()
 {
@@ -110,6 +113,7 @@ Num::Num(const Num& rhs) noexcept
     }
 #endif
 }
+#endif
 
 // ======================================================================================
 // Basic copy assignment operators
@@ -663,4 +667,6 @@ Num* make_Num(int size)
     return nullptr;
 }
 #endif
+
+#endif // COMPILE_NUM
 
