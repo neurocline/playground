@@ -141,10 +141,8 @@ Num& Num::addto(const Num& rhs)
     // 1 digit.
     if (data.len > i)
     {
-        for (; carry != 0; i++)
+        for (; carry != 0 && i < data.len; i++)
         {
-            if (i == data.len)
-                lbuf = grow(1);
             carry = carry + lbuf[i];
             lbuf[i] = (uint32_t) carry;
             carry >>= 32;

@@ -57,7 +57,7 @@ TEST_CASE("NumBuffer - construct/destruct", "[NumBuffer]")
     }
 }
 
-TEST_CASE("Num - buffer management", "[NumBuffer]")
+TEST_CASE("NumBuffer - buffer management", "[NumBuffer]")
 {
     SECTION("Testing reserve")
     {
@@ -182,328 +182,412 @@ TEST_CASE("NumBuffer - copy/move", "[NumBuffer]")
         REQUIRE(large.nonlocal);
         REQUIRE(large.big.digits == nullptr);
     }
-}
 
-#if COMPILE_NUM
-TEST_CASE("Num - buffer management", "[Num]")
-{
-    // Test reserve - it should preserve existing data
-    Num resizing;
-    REQUIRE(resizing.data.local == 1);
-    REQUIRE(resizing.small.len == 0);
-
-    resizing.reserve(2);
-    REQUIRE(resizing.data.local == 1);
-    resizing.small.len = 2;
-    resizing.small.buf[0] = 0;
-    resizing.small.buf[1] = 1;
-
-    resizing.reserve(8);
-    REQUIRE(resizing.data.local == 0);
-    REQUIRE(resizing.big.bufsize == 8);
-    for (uint32_t i = 0; i < 2; i++)
-        REQUIRE(resizing.big.buf[i] == i);
-    for (uint32_t i = 0; i < 8; i++)
-        resizing.big.buf[i] = i;
-    resizing.big.len = 8;
-
-    resizing.reserve(16);
-    REQUIRE(resizing.data.local == 0);
-    REQUIRE(resizing.big.bufsize == 16);
-    for (uint32_t i = 0; i < 8; i++)
-        REQUIRE(resizing.big.buf[i] == i);
-    for (uint32_t i = 0; i < 16; i++)
-        resizing.big.buf[i] = i;
-    resizing.big.len = 16;
-
-    // Test grow (internal function)
-    Num growv;
-    REQUIRE(growv.small.len == 0);
-    growv.grow(1);
-    REQUIRE(growv.data.local == 1);
-    REQUIRE(growv.small.len == 1);
-    growv.grow(6);
-    REQUIRE(growv.data.local == 1);
-    REQUIRE(growv.small.len == 7);
-    growv.grow(1);
-    REQUIRE(growv.data.local == 0);
-    REQUIRE(growv.big.len == 8);
-    growv.grow(8);
-    REQUIRE(growv.data.local == 0);
-    REQUIRE(growv.big.len == 16);
-
-    // Test trim - leave number in canonical form
+    SECTION("Testing copy assignment operator")
     {
-    Num trimv;
-    trimv.reserve(2);
-    trimv.databuffer()[0] = 5;
-    trimv.databuffer()[1] = 8;
-    trimv.small.len = 2;
+        NumBuffer buf;
 
-    trimv.trim();
-    REQUIRE(trimv.small.len == 2);
-    REQUIRE(trimv.databuffer()[0] == 5);
-    REQUIRE(trimv.databuffer()[1] == 8);
+        // Small = small
+        buf.resize(NumBuffer::smallbufsize);
+        memset(buf.buf, 0x42, NumBuffer::smallbufsize*sizeof(uint32_t));
+        buf = small;
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.buf[0] == 20);
+        REQUIRE(buf.buf[1] == 0x42424242);
 
-    trimv.databuffer()[1] = 0;
-    trimv.trim();
-    REQUIRE(trimv.small.len == 1);
-    REQUIRE(trimv.databuffer()[0] == 5);
+        // Small = large
+        buf = large;
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 10);
+        REQUIRE(buf.big.digits[0] == 0x66666666);
+        REQUIRE(buf.big.digits[9] == 0x66666666);
+
+        // large = small
+        buf.resize(20);
+        memset(buf.big.digits, 0x42, 20*sizeof(uint32_t));
+        buf = small;
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.big.digits[0] == 20);
+
+        // large = large
+        buf.resize(20);
+        buf = large;
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 10);
+        REQUIRE(buf.big.digits[0] == 0x66666666);
+        REQUIRE(buf.big.digits[9] == 0x66666666);
     }
 
-    // Test shrink (internal function)
+    SECTION("Testing move assignment of small object")
     {
-    Num shrinkv;
-    REQUIRE(shrinkv.small.len == 0);
-    shrinkv.shrink(1);
-    REQUIRE(shrinkv.small.len == 0);
-    shrinkv.grow(10);
-    REQUIRE(shrinkv.big.len == 10);
-    shrinkv.shrink(8);
-    REQUIRE(shrinkv.big.len == 2);
+        NumBuffer buf;
+        buf = std::move(small);
+        REQUIRE_FALSE(buf.nonlocal);
+        REQUIRE(buf.len == 1);
+        REQUIRE(buf.buf[0] == 20);
+
+        REQUIRE(small.nonlocal);
+        REQUIRE(small.big.digits == nullptr);
     }
-}
 
-TEST_CASE("Num - big 5 (constructors and copy assignment operators)", "[Num]")
-{
-    // Basic constructor
-    Num zero;
-    REQUIRE(zero.data.local == 1);
-    REQUIRE(zero.data.len == 0);
-    REQUIRE(zero.data.sign == 0);
+    SECTION("Testing move assignment of large object")
+    {
+        NumBuffer buf;
+        buf = std::move(large);
+        REQUIRE(buf.nonlocal);
+        REQUIRE(buf.len == 10);
+        REQUIRE(buf.big.digits[0] == 0x66666666);
+        REQUIRE(buf.big.digits[9] == 0x66666666);
 
-    // Make some source numbers to test with
-    // 16-digit zero
-    Num zero16;
-    zero16.reserve(16);
-    REQUIRE(zero16.data.local == 0);
-    REQUIRE(zero16.big.buf != nullptr);
-    REQUIRE(zero16.data.len == 0);
-    REQUIRE(zero16.big.bufsize == 16);
-
-    // 2-digit nonzero
-    Num num2;
-    num2.small.buf[0] = 0x0000'000FL;
-    num2.small.buf[1] = 0xF000'0000L;
-    num2.small.len = 2;
-    REQUIRE(num2.data.local == 1);
-    REQUIRE(num2.small.len == 2);
-
-    // 16-digit nonzero
-    Num num16;
-    num16.reserve(16);
-    REQUIRE(num16.big.bufsize == 16);
-    //memset(num16.big.buf, 0, num16.big.bufsize*4);
-    num16.clear_digits(0, num16.big.bufsize);
-    num16.big.len = 16;
-    num16.big.buf[15] = 0x9988'7766L;
-    REQUIRE(num16.data.local == 0);
-    REQUIRE(num16.big.len == 16);
-
-    // 8-digit nonzero in 16-digit buffer
-    Num num8_16;
-    num8_16.reserve(16);
-    REQUIRE(num8_16.big.bufsize == 16);
-    //memset(num8_16.big.buf, 0, num8_16.big.bufsize*4);
-    num8_16.clear_digits(0, num8_16.big.bufsize);
-    num8_16.big.len = 8;
-    num8_16.big.buf[7] = 0x1234'5678L;
-    REQUIRE(num8_16.data.local == 0);
-    REQUIRE(num8_16.big.len == 8);
-
-    // Copy constructor of big zero - this should produce a small zero
-    Num copyzero16{zero16};
-    REQUIRE(copyzero16.data.local == 1);
-    REQUIRE(copyzero16.small.len == 0);
-
-    // Copy constructor of small num
-    Num smallcopy{num2};
-    REQUIRE(smallcopy.data.local == 1);
-    REQUIRE(smallcopy.small.len == 2);
-    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
-    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
-
-    // Copy a 8-digit number that is in a 16-digit buffer
-    Num bigcopy{num8_16};
-    REQUIRE(bigcopy.data.local == 0);
-    REQUIRE(bigcopy.big.len == 8);
-    REQUIRE(bigcopy.big.bufsize == 8);
-    REQUIRE(bigcopy.big.buf[7] == 0x1234'5678L);
-
-    // Copy assign a zero
-    Num copyzero = zero;
-    REQUIRE(copyzero.data.local == 1);
-    REQUIRE(copyzero.small.len == 0);
-
-    // Copy assign a small Num
-    Num copysmall = num2;
-    REQUIRE(smallcopy.data.local == 1);
-    REQUIRE(smallcopy.small.len == 2);
-    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
-    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
-
-    // Copy assign a small Num into a big one - it stays a big Num
-    Num bignum2;
-    bignum2.reserve(16);
-    bignum2 = num2;
-    REQUIRE(bignum2.data.local == 0);
-    REQUIRE(bignum2.big.bufsize == 16);
-    REQUIRE(bignum2.big.len == 2);
-    REQUIRE(bignum2.big.buf[0] == 0x0000'000FL);
-    REQUIRE(bignum2.big.buf[1] == 0xF000'0000L);
-
-    // Copy assign a big Num into a big one with a buffer that's too small
-    Num bignum8;
-    bignum8.reserve(8);
-    bignum8 = num16;
-    REQUIRE(bignum8.data.local == 0);
-    REQUIRE(bignum8.big.bufsize == 16);
-    REQUIRE(bignum8.big.len == 16);
-    REQUIRE(bignum8.big.buf[15] == 0x9988'7766L);
-
-    // Copy assign a big Num into one with a bigger buffer - the dest
-    // retains its bigger buffer
-    Num bignum32;
-    bignum32.reserve(32);
-    bignum32 = num16;
-    REQUIRE(bignum32.data.local == 0);
-    REQUIRE(bignum32.big.bufsize == 32);
-    REQUIRE(bignum32.big.len == 16);
-    REQUIRE(bignum32.big.buf[15] == 0x9988'7766L);
+        REQUIRE(large.nonlocal);
+        REQUIRE(large.big.digits == nullptr);
+    }
 }
 
 TEST_CASE("Num - copy assign from primitive numbers", "[Num]")
 {
     Num v = 0;
-    REQUIRE(v.data.local == 1);
-    REQUIRE(v.small.len == 0);
+    REQUIRE_FALSE(v.data.nonlocal);
+    REQUIRE(v.data.len == 0);
 
     v = -1;
-    REQUIRE(v.data.local == 1);
-    REQUIRE(v.small.len == 1);
-    REQUIRE(v.small.sign == -1);
-    REQUIRE(v.small.buf[0] == 1);
+    REQUIRE_FALSE(v.data.nonlocal);
+    REQUIRE(v.data.len == 1);
+    REQUIRE(v.data.sign == -1);
+    REQUIRE(v.data.buf[0] == 1);
 
     v = int64_t((1ULL << 63) - 1);
-    REQUIRE(v.data.local == 1);
-    REQUIRE(v.small.len == 2);
-    REQUIRE(v.small.sign == 0);
-    REQUIRE(v.small.buf[0] == 0xFFFF'FFFF);
-    REQUIRE(v.small.buf[1] == 0x7FFF'FFFF);
+    REQUIRE_FALSE(v.data.nonlocal);
+    REQUIRE(v.data.len == 2);
+    REQUIRE(v.data.sign == 0);
+    REQUIRE(v.data.buf[0] == 0xFFFF'FFFF);
+    REQUIRE(v.data.buf[1] == 0x7FFF'FFFF);
 
     v = uint64_t(-1LL);
-    REQUIRE(v.data.local == 1);
-    REQUIRE(v.small.len == 2);
-    REQUIRE(v.small.sign == 0);
-    REQUIRE(v.small.buf[0] == 0xFFFF'FFFF);
-    REQUIRE(v.small.buf[1] == 0xFFFF'FFFF);
+    REQUIRE_FALSE(v.data.nonlocal);
+    REQUIRE(v.data.len == 2);
+    REQUIRE(v.data.sign == 0);
+    REQUIRE(v.data.buf[0] == 0xFFFF'FFFF);
+    REQUIRE(v.data.buf[1] == 0xFFFF'FFFF);
 }
 
-TEST_CASE("Num - addition", "[Num]")
+TEST_CASE("Num - simple addition", "[Num]")
 {
-    Num augend;
-    Num addend;
+    Num zero{0};
+    REQUIRE(zero.data.len == 0);
+    Num plusone{1};
+    REQUIRE(plusone.data.len == 1);
+    REQUIRE(plusone.data.sign == 0);
+    Num plustwo{2};
+    REQUIRE(plustwo.data.len == 1);
+    REQUIRE(plustwo.data.sign == 0);
+    REQUIRE(plustwo.data.buf[0] == 2);
+    Num minusone{-1};
+    REQUIRE(minusone.data.len == 1);
+    REQUIRE(minusone.data.sign == -1);
+    Num minustwo{-2};
+    REQUIRE(minustwo.data.len == 1);
+    REQUIRE(minustwo.data.sign == -1);
+    REQUIRE(minustwo.data.buf[0] == 2);
 
-    // Adding zero
-    Num result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 0);
+    SECTION("Adding zero")
+    {
+        Num result = zero + zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
 
-    result = augend + 0;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 0);
+        result = zero;
+        result += zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+    }
 
-    // positive + positive
-    augend = 1;
-    addend = 1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == 0);
-    REQUIRE(result.small.buf[0] == 2);
+    SECTION("Adding positive and positive")
+    {
+        Num result = plusone + plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 2);
 
-    // negative + negative
-    augend = -1;
-    addend = -1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == -1);
-    REQUIRE(result.small.buf[0] == 2);
+        result = plusone;
+        result += plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 2);
 
-    // positive + negative
-    augend = 1;
-    addend = -1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 0);
+        result = plustwo + plustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 4);
+    }
 
-    augend = 1;
-    addend = -2;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == -1);
-    REQUIRE(result.small.buf[0] == 1);
-    
-    augend = 2;
-    addend = -1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == 0);
-    REQUIRE(result.small.buf[0] == 1);
+    SECTION("Adding positive and negative")
+    {
+        Num result = plusone + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
 
-    // negative + positive
-    augend = -1;
-    addend = 1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 0);
+        result = plusone;
+        result += minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
 
-    augend = -1;
-    addend = 2;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == 0);
-    REQUIRE(result.small.buf[0] == 1);
+        result = plusone + minustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
 
-    augend = -2;
-    addend = 1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == -1);
-    REQUIRE(result.small.buf[0] == 1);
+        result = plustwo + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+    }
 
-    // Making a Num bigger than uint64_t and then smaller again
-    augend = 0xFFFF'FFFF'FFFF'FFFFULL;
-    addend = 1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 3);
-    REQUIRE(result.small.sign == 0);
-    REQUIRE(result.small.buf[0] == 0);
-    REQUIRE(result.small.buf[1] == 0);
-    REQUIRE(result.small.buf[2] == 1);
+    SECTION("Adding negative and positive")
+    {
+        Num result = minusone + plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
 
-    augend = result;
-    addend = -1;
-    result = augend + addend;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 2);
-    REQUIRE(result.small.sign == 0);
-    REQUIRE(result.small.buf[0] == 0xFFFF'FFFFUL);
-    REQUIRE(result.small.buf[1] == 0xFFFF'FFFFUL);
+        result = minusone;
+        result += plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
 
-    augend = 1;
-    result = augend + 1;
-    REQUIRE(result.data.local == 1);
-    REQUIRE(result.small.len == 1);
-    REQUIRE(result.small.sign == 0);
-    REQUIRE(result.small.buf[0] == 2);
+        result = minusone + plustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = minustwo + plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
+    }
+
+    SECTION("Adding negative and negative")
+    {
+        Num result = minusone + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 2);
+
+        result = minusone;
+        result += minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 2);
+
+        result = minusone + minustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 3);
+
+        result = minustwo + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 3);
+    }
+
+    SECTION("Adding over a digit boundary")
+    {
+        // Add longer value to shorter value
+        Num result = 0xFFFF'FFFF'FFFF'FFFFULL;
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        result += plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 3);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0);
+        REQUIRE(result.data.buf[1] == 0);
+        REQUIRE(result.data.buf[2] == 1);
+
+        result += minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        // Now add shorter value to longer value
+        result = plusone + result;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 3);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0);
+        REQUIRE(result.data.buf[1] == 0);
+        REQUIRE(result.data.buf[2] == 1);
+
+        result = minusone + result;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+    }
 }
+
+TEST_CASE("Num - multiply", "[Num]")
+{
+    Num zero{0};
+    Num plusone{1};
+    Num plustwo{2};
+    Num minusone{-1};
+    Num minustwo{-2};
+    Num pluslarge{0xFFFF'FFFF'FFFF'FFFFULL};
+
+    SECTION("Multiplying by zero")
+    {
+        Num result = zero * zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = zero * plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = plusone * zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = zero * minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = minusone * zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = pluslarge * zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = zero * pluslarge;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+    }
+
+    SECTION("Multiply large by small")
+    {
+        Num result = pluslarge * plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        result = pluslarge * minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        result = pluslarge * plustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 3);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFEUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[2] == 1);
+
+        result = plusone * pluslarge;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        result = minusone * pluslarge;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        result = plustwo * pluslarge;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 3);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFEUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[2] == 1);
+    }
+
+    SECTION("Multiply large by large")
+    {
+        // (2^64 - 1) * (2^64 - 1)
+        Num result = pluslarge * pluslarge;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 4);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0x0000'0001UL);
+        REQUIRE(result.data.buf[1] == 0x0000'0000UL);
+        REQUIRE(result.data.buf[2] == 0xFFFF'FFFEUL);
+        REQUIRE(result.data.buf[3] == 0xFFFF'FFFFUL);
+
+        // (2^128 - 1) * (2^128 - 1) exceeds the small bufffer
+        memset(result.data.buf, 255, 16);
+        result = result * result;
+        REQUIRE(result.data.nonlocal);
+        REQUIRE(result.data.len == 8);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.big.digits[0] == 0x0000'0001UL);
+        REQUIRE(result.data.big.digits[1] == 0x0000'0000UL);
+        REQUIRE(result.data.big.digits[2] == 0x0000'0000UL);
+        REQUIRE(result.data.big.digits[3] == 0x0000'0000UL);
+        REQUIRE(result.data.big.digits[4] == 0xFFFF'FFFEUL);
+        REQUIRE(result.data.big.digits[5] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.big.digits[6] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.big.digits[7] == 0xFFFF'FFFFUL);
+
+        // (2^256 - 1) * (2^256 - 1) is even bigger
+        memset(result.data.big.digits, 255, 32);
+        result = result * result;
+        REQUIRE(result.data.nonlocal);
+        REQUIRE(result.data.len == 16);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.big.digits[0] == 0x0000'0001UL);
+        REQUIRE(result.data.big.digits[1] == 0x0000'0000UL);
+        REQUIRE(result.data.big.digits[2] == 0x0000'0000UL);
+        REQUIRE(result.data.big.digits[3] == 0x0000'0000UL);
+        // zeros
+        REQUIRE(result.data.big.digits[8] == 0xFFFF'FFFEUL);
+        // all ff
+        REQUIRE(result.data.big.digits[13] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.big.digits[14] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.big.digits[15] == 0xFFFF'FFFFUL);
+    }
+}
+
+#if 0
+#if COMPILE_NUM
 
 TEST_CASE("Num - multiply and divide", "[Num]")
 {
@@ -627,6 +711,7 @@ TEST_CASE("string to Num", "[Num]")
 }
 
 #endif // #if COMPILE_NUM
+#endif
 
 // old tests
 #if 0
@@ -1070,5 +1155,194 @@ TEST_CASE("Num - to/from string", "[Num]")
         v *= 10;
         strcat(mbuf, "0");
     }
+}
+#endif
+
+#if 0
+TEST_CASE("Num - buffer management", "[Num]")
+{
+    // Test reserve - it should preserve existing data
+    Num resizing;
+    REQUIRE(resizing.data.local == 1);
+    REQUIRE(resizing.small.len == 0);
+
+    resizing.reserve(2);
+    REQUIRE(resizing.data.local == 1);
+    resizing.small.len = 2;
+    resizing.small.buf[0] = 0;
+    resizing.small.buf[1] = 1;
+
+    resizing.reserve(8);
+    REQUIRE(resizing.data.local == 0);
+    REQUIRE(resizing.big.bufsize == 8);
+    for (uint32_t i = 0; i < 2; i++)
+        REQUIRE(resizing.big.buf[i] == i);
+    for (uint32_t i = 0; i < 8; i++)
+        resizing.big.buf[i] = i;
+    resizing.big.len = 8;
+
+    resizing.reserve(16);
+    REQUIRE(resizing.data.local == 0);
+    REQUIRE(resizing.big.bufsize == 16);
+    for (uint32_t i = 0; i < 8; i++)
+        REQUIRE(resizing.big.buf[i] == i);
+    for (uint32_t i = 0; i < 16; i++)
+        resizing.big.buf[i] = i;
+    resizing.big.len = 16;
+
+    // Test grow (internal function)
+    Num growv;
+    REQUIRE(growv.small.len == 0);
+    growv.grow(1);
+    REQUIRE(growv.data.local == 1);
+    REQUIRE(growv.small.len == 1);
+    growv.grow(6);
+    REQUIRE(growv.data.local == 1);
+    REQUIRE(growv.small.len == 7);
+    growv.grow(1);
+    REQUIRE(growv.data.local == 0);
+    REQUIRE(growv.big.len == 8);
+    growv.grow(8);
+    REQUIRE(growv.data.local == 0);
+    REQUIRE(growv.big.len == 16);
+
+    // Test trim - leave number in canonical form
+    {
+    Num trimv;
+    trimv.reserve(2);
+    trimv.databuffer()[0] = 5;
+    trimv.databuffer()[1] = 8;
+    trimv.small.len = 2;
+
+    trimv.trim();
+    REQUIRE(trimv.small.len == 2);
+    REQUIRE(trimv.databuffer()[0] == 5);
+    REQUIRE(trimv.databuffer()[1] == 8);
+
+    trimv.databuffer()[1] = 0;
+    trimv.trim();
+    REQUIRE(trimv.small.len == 1);
+    REQUIRE(trimv.databuffer()[0] == 5);
+    }
+
+    // Test shrink (internal function)
+    {
+    Num shrinkv;
+    REQUIRE(shrinkv.small.len == 0);
+    shrinkv.shrink(1);
+    REQUIRE(shrinkv.small.len == 0);
+    shrinkv.grow(10);
+    REQUIRE(shrinkv.big.len == 10);
+    shrinkv.shrink(8);
+    REQUIRE(shrinkv.big.len == 2);
+    }
+}
+
+TEST_CASE("Num - big 5 (constructors and copy assignment operators)", "[Num]")
+{
+    // Basic constructor
+    Num zero;
+    REQUIRE(zero.data.local == 1);
+    REQUIRE(zero.data.len == 0);
+    REQUIRE(zero.data.sign == 0);
+
+    // Make some source numbers to test with
+    // 16-digit zero
+    Num zero16;
+    zero16.reserve(16);
+    REQUIRE(zero16.data.local == 0);
+    REQUIRE(zero16.big.buf != nullptr);
+    REQUIRE(zero16.data.len == 0);
+    REQUIRE(zero16.big.bufsize == 16);
+
+    // 2-digit nonzero
+    Num num2;
+    num2.small.buf[0] = 0x0000'000FL;
+    num2.small.buf[1] = 0xF000'0000L;
+    num2.small.len = 2;
+    REQUIRE(num2.data.local == 1);
+    REQUIRE(num2.small.len == 2);
+
+    // 16-digit nonzero
+    Num num16;
+    num16.reserve(16);
+    REQUIRE(num16.big.bufsize == 16);
+    //memset(num16.big.buf, 0, num16.big.bufsize*4);
+    num16.clear_digits(0, num16.big.bufsize);
+    num16.big.len = 16;
+    num16.big.buf[15] = 0x9988'7766L;
+    REQUIRE(num16.data.local == 0);
+    REQUIRE(num16.big.len == 16);
+
+    // 8-digit nonzero in 16-digit buffer
+    Num num8_16;
+    num8_16.reserve(16);
+    REQUIRE(num8_16.big.bufsize == 16);
+    //memset(num8_16.big.buf, 0, num8_16.big.bufsize*4);
+    num8_16.clear_digits(0, num8_16.big.bufsize);
+    num8_16.big.len = 8;
+    num8_16.big.buf[7] = 0x1234'5678L;
+    REQUIRE(num8_16.data.local == 0);
+    REQUIRE(num8_16.big.len == 8);
+
+    // Copy constructor of big zero - this should produce a small zero
+    Num copyzero16{zero16};
+    REQUIRE(copyzero16.data.local == 1);
+    REQUIRE(copyzero16.small.len == 0);
+
+    // Copy constructor of small num
+    Num smallcopy{num2};
+    REQUIRE(smallcopy.data.local == 1);
+    REQUIRE(smallcopy.small.len == 2);
+    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
+    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
+
+    // Copy a 8-digit number that is in a 16-digit buffer
+    Num bigcopy{num8_16};
+    REQUIRE(bigcopy.data.local == 0);
+    REQUIRE(bigcopy.big.len == 8);
+    REQUIRE(bigcopy.big.bufsize == 8);
+    REQUIRE(bigcopy.big.buf[7] == 0x1234'5678L);
+
+    // Copy assign a zero
+    Num copyzero = zero;
+    REQUIRE(copyzero.data.local == 1);
+    REQUIRE(copyzero.small.len == 0);
+
+    // Copy assign a small Num
+    Num copysmall = num2;
+    REQUIRE(smallcopy.data.local == 1);
+    REQUIRE(smallcopy.small.len == 2);
+    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
+    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
+
+    // Copy assign a small Num into a big one - it stays a big Num
+    Num bignum2;
+    bignum2.reserve(16);
+    bignum2 = num2;
+    REQUIRE(bignum2.data.local == 0);
+    REQUIRE(bignum2.big.bufsize == 16);
+    REQUIRE(bignum2.big.len == 2);
+    REQUIRE(bignum2.big.buf[0] == 0x0000'000FL);
+    REQUIRE(bignum2.big.buf[1] == 0xF000'0000L);
+
+    // Copy assign a big Num into a big one with a buffer that's too small
+    Num bignum8;
+    bignum8.reserve(8);
+    bignum8 = num16;
+    REQUIRE(bignum8.data.local == 0);
+    REQUIRE(bignum8.big.bufsize == 16);
+    REQUIRE(bignum8.big.len == 16);
+    REQUIRE(bignum8.big.buf[15] == 0x9988'7766L);
+
+    // Copy assign a big Num into one with a bigger buffer - the dest
+    // retains its bigger buffer
+    Num bignum32;
+    bignum32.reserve(32);
+    bignum32 = num16;
+    REQUIRE(bignum32.data.local == 0);
+    REQUIRE(bignum32.big.bufsize == 32);
+    REQUIRE(bignum32.big.len == 16);
+    REQUIRE(bignum32.big.buf[15] == 0x9988'7766L);
 }
 #endif

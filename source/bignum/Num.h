@@ -39,7 +39,7 @@ public:
     uint32_t* reserve(int size);
 
     // Return the size of the value in the NumBuffer
-    int length() { return len; }
+    int length() const { return len; }
 
     // Return the capacity of the NumBuffer - the allocated storage
     int capacity() { return nonlocal ? big.bufsize : smallbufsize; }
@@ -86,7 +86,7 @@ public:
 static_assert(sizeof(NumBuffer) == 32, "NumBuffer unexpected size");
 static_assert(sizeof(NumBuffer::buf) >= sizeof(NumBuffer::big), "NumBuffer::small data too small!");
 
-#define COMPILE_NUM 0
+#define COMPILE_NUM 1
 #if COMPILE_NUM 
 
 #include <string>
@@ -97,17 +97,15 @@ static_assert(sizeof(NumBuffer::buf) >= sizeof(NumBuffer::big), "NumBuffer::smal
 class Num
 {
 public:
-    #if 0
-	Num();
+	Num() {}
 
     // Big 5: destructor, copy constructor, copy assignment operator
     // (move constructor and move assignment operator are default generated)
-	~Num() noexcept;
-    Num(const Num& other) noexcept;            // Copy constructor
-    Num& operator=(const Num& other) noexcept; // Copy assignment operator
-    Num(Num&& rhs) = default;                  // Move constructor
-    Num& operator=(Num&& rhs) = default;       // Move assignment operator
-    #endif
+	~Num() = default;
+    Num(const Num& other) = default;            // Copy constructor
+    Num& operator=(const Num& other) = default; // Copy assignment operator
+    Num(Num&& rhs) = default;                   // Move constructor
+    Num& operator=(Num&& rhs) = default;        // Move assignment operator
 
     // Reserve space for a large Num. This can never ben used to shrink the size
     // of a Num - to "garbage collect", copy to a new zero-length Num.
@@ -234,15 +232,15 @@ public:
     // used by math operations. This must eventually be followed by trim(), because
     // a Num must be left in normalized form, where the most-significant digit is
     // non-zero.
-    uint32_t* grow(int amt = 1);
+    uint32_t* grow(int amt = 1) { return data.resize(data.length() + amt); }
 
     // Shrink a Num by the indicated number of digits. This is an internal function
     // used by math operations. This will perform a modulo to digit^len, where len
     // is the length of Num at the end of the shrink operation.
-    uint32_t* shrink(int amt = 1);
+    uint32_t* shrink(int amt = 1) { return data.resize(data.length() - amt); }
 
     // Resize a Num. This is an internal function.
-    uint32_t* resize(int size);
+    uint32_t* resize(int size) { return data.resize(size); }
 
     // Call trim to make sure the Num is in canonical form - the most significant digit
     // is non-zero, or the Num is zero length.
@@ -250,16 +248,16 @@ public:
 
     // Return the capacity of the Num. This is an internal function used by operators
     // and buffer management.
-    int capacity() { return data.local ? smallbufsize : big.bufsize; }
+    int capacity() { return data.capacity(); }
 
     // Size of current number in digits
-    //int len() const { return data.len; }
+    //int len() const { return data.length(); }
 
     // Return a pointer to the start of Num storage. A Num is stored as an array of
     // digits. The non-template version of Num is hardcoded to `uint32_t` as the digit
     // size.
-    uint32_t* databuffer() { return data.local ? small.buf : big.buf; }
-    const uint32_t* cdatabuffer() const { return data.local ? small.buf : big.buf; }
+    uint32_t* databuffer() { return data.digits(); }
+    const uint32_t* cdatabuffer() const { return data.cdigits(); }
 
     // Add lhs + rhs ignoring sign
     Num& addto(const Num& rhs);
@@ -269,53 +267,14 @@ public:
 
     // Clear out part of a Num
     // TBD get rid of the need for this
-    //void clear_(int s, int e) { memset(databuffer()+s, 0, (e - s)*sizeof(uint32_t)); }
-    //void dup_(uint32_t* dest) { memcpy(dest, databuffer(), data.len*sizeof(uint32_t)); }
 
-    void clear_digits(int b, int e) { memset(databuffer()+b, 0, (e - b)*sizeof(uint32_t)); }
-    void copy_digits(uint32_t* dest, const uint32_t* src, int digits) {
-        memcpy(dest, src, digits * sizeof(uint32_t));
-    }
+    //void clear_digits(int b, int e) { memset(databuffer()+b, 0, (e - b)*sizeof(uint32_t)); }
+    //void copy_digits(uint32_t* dest, const uint32_t* src, int digits) {
+    //    memcpy(dest, src, digits * sizeof(uint32_t));
+    //}
 
-    #if 0
-    static constexpr int smallbufsize = 7;
-    union
-    {
-        uint32_t prefix; // this is local + sign + len
-        struct
-        {
-            uint32_t local : 1; // set to 1 for small data optimization
-            int32_t sign : 1; // 0 for positive, -1 for negative
-            int32_t len : 30; // this is too big, but there's nothing else to use it for yet
-        } data;
-        struct
-        {
-            uint32_t local : 1; // set to 1 for small data optimization
-            int32_t sign : 1; // 0 for positive, -1 for negative
-            int32_t len : 30; // this is too big, but there's nothing else to use it for yet
-            uint32_t buf[smallbufsize];
-        } small;
-        struct
-        {
-            uint32_t local : 1; // set to 0 for big data
-            int32_t sign : 1; // 0 for positive, -1 for negative
-            int32_t len : 30;
-            int32_t bufsize;
-            uint32_t* buf;
-        } big;
-    };
-    #else
     NumBuffer data;
-    #endif
 };
-
-#if 0
-static_assert(sizeof(Num::small) == 32, "Num::small unexpected size");
-static_assert(sizeof(Num::small) >= sizeof(Num::big), "Num::small data too small!");
-#else
-static_assert(sizeof(Num::data) == 32, "Num::small unexpected size");
-static_assert(sizeof(Num::data) >= sizeof(Num::data.big), "Num::small data too small!");
-#endif
 
 inline bool operator==(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) == 0; }
 inline bool operator!=(const Num& lhs, const Num& rhs) noexcept { return lhs.magcmp(rhs) != 0; }

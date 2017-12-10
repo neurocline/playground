@@ -121,6 +121,7 @@ Num::Num(const Num& rhs) noexcept
 // - copy assignment doesn't shrink the dest buf
 // ======================================================================================
 
+#if 0
 // Copy assignment operator
 Num& Num::operator=(const Num& rhs) noexcept
 {
@@ -207,6 +208,7 @@ Num& Num::operator=(const Num& rhs) noexcept
 
     return *this;
 }
+#endif
 
 // ======================================================================================
 // Copy constructors that convert other types to Num
@@ -216,25 +218,21 @@ Num& Num::operator=(const Num& rhs) noexcept
 // that holds the value.
 Num::Num(int v) noexcept
 {
-    data.local = 1;
     from_int64(v);
 }
 
 Num::Num(unsigned int uv) noexcept
 {
-    data.local = 1;
     from_uint64(uv);
 }
 
 Num::Num(long long v) noexcept
 {
-    data.local = 1;
     from_int64(v);
 }
 
 Num::Num(unsigned long long uv) noexcept
 {
-    data.local = 1;
     from_uint64(uv);
 }
 
@@ -247,33 +245,25 @@ void Num::from_int64(long long v)
     from_uint64(uv);
 
     if (v < 0)
-        small.sign = -1;
+        data.sign = -1;
 }
 
-// TBD - this breaks the "we won't deallocate reserved buffers" statement. Should we
-// keep that promise, even though it makes for longer code in this instance?
+// Convert a uint64_t to a Num
 void Num::from_uint64(unsigned long long uv)
 {
-    data.sign = 0;
+    data.reserve(2); // make sure we have enough space for a uint64
     data.len = 0;
-    if (!data.local)
-    {
-        delete[] big.buf;
-        data.local = 1;
-    }
+    data.sign = 0;
+
+    uint32_t* digits = data.digits();
 
     int i = 0;
     for (; uv != 0; i++)
     {
-        small.len += 1;
-        small.buf[i] = (uv & 0xFFFFFFFFL);
+        data.len += 1;
+        digits[i] = (uv & 0xFFFFFFFFL);
         uv >>= 32;
     }
-
-    #ifndef NDEBUG
-    for (; i < smallbufsize; i++)
-        small.buf[i] = 0;
-    #endif
 }
 
 #if 0
@@ -353,13 +343,14 @@ Num::operator unsigned long long() const
 // Convert a Num to an unsigned long long value (modulo 2^64)
 uint64_t Num::to_uint64() const
 {
-    const uint32_t* buf = data.local ? small.buf : big.buf;
+    const uint32_t* digits = data.cdigits();
+    int len = data.length();
+
     uint64_t uv = 0;
-    int len = small.local ? small.len : big.len;
     if (len > 2) len = 2;
 
     for (int i = len - 1; i >= 0; i--)
-        uv = (uv << 32) | buf[i];
+        uv = (uv << 32) | digits[i];
 
     return uv;
 }
@@ -468,6 +459,7 @@ const Num& Num::from_string(const std::string_view& s, int base)
 // Buffer management
 // ======================================================================================
 
+#if 0
 // Reserve space (used for a Num we know is going to get large)
 // This will never reduce the Num buffer below the size of the current buffer. The way
 // to shrink an allocation is to copy-construct a new number from an existing one,
@@ -554,18 +546,19 @@ uint32_t* Num::shrink(int amt)
 
     return databuffer();
 }
+#endif
 
 // Resize Num so that the highest digit is non-zero
 void Num::trim()
 {
     auto b = databuffer();
-    int i = data.len;
+    int i = data.length();
     for (; i > 0; --i)
         if (b[i-1] != 0)
             break;
 
-    if (i != data.len)
-        shrink(data.len - i);
+    if (i != data.length())
+        shrink(data.length() - i);
 }
 
 // ======================================================================================

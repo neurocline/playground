@@ -54,7 +54,7 @@ Num& Num::operator*=(const Num& rhs)
     int n = multiplicand.data.len;
 
     resize(m + n);
-    clear_digits(0, n); // initialize |multiplicand| digits to zero (initial partial sums)
+    data.clear_digits(0, n); // initialize |multiplicand| digits to zero (initial partial sums)
     auto lbuf = databuffer();
 
     // Loop through each digit of the multiplier
