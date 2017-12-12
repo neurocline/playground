@@ -253,19 +253,26 @@ Num Num::operator-(const Num& rhs)
 // Grow/shrink the lhs Num as needed.
 Num& Num::operator-=(const Num& rhs)
 {
-    // If the signs are different, we add and preserve the sign
+    // If the signs are different, we add and preserve the LHS sign
+    //    +a - -b == +a + +b == +(a+b)
+    //    -a - +b == -a + -b == -(a+b)
     if (data.sign != rhs.data.sign)
         return addto(rhs);
 
     // If the signs are the same, we are actually subtracting. If the lhs has the larger
     // magnitude, we can just subtract rhs from lhs while preserving sign of lhs.
+    //   +a - +b == +(a-b)
+    //   -a - -b == -(a-b)
     if (magcmp(rhs) >= 0)
         return subfrom(rhs);
 
     // The signs are the same, and the rhs is the large value. We need a temp to operate
-    // on. Copy lhs to a temp, copy rhs to lhs, and then subtract magnitudes.
+    // on. Copy lhs to a temp, copy rhs to lhs, flip sign, and then subtract magnitudes.
+    //  +a - +b == -(b-a)
+    //  -a - -b == +(b-a)
     Num temp{*this};
     *this = rhs;
+    this->data.sign = this->data.sign == 0 ? -1 : 0;
     return subfrom(temp);
 }
 

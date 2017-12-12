@@ -302,6 +302,18 @@ TEST_CASE("Num - simple addition", "[Num]")
         result += zero;
         REQUIRE_FALSE(result.data.nonlocal);
         REQUIRE(result.data.len == 0);
+
+        result = plusone + zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = minusone + zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
     }
 
     SECTION("Adding positive and positive")
@@ -407,6 +419,191 @@ TEST_CASE("Num - simple addition", "[Num]")
     }
 
     SECTION("Adding over a digit boundary")
+    {
+        // Add longer value to shorter value
+        Num result = 0xFFFF'FFFF'FFFF'FFFFULL;
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        result += plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 3);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0);
+        REQUIRE(result.data.buf[1] == 0);
+        REQUIRE(result.data.buf[2] == 1);
+
+        result += minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+
+        // Now add shorter value to longer value
+        result = plusone + result;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 3);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0);
+        REQUIRE(result.data.buf[1] == 0);
+        REQUIRE(result.data.buf[2] == 1);
+
+        result = minusone + result;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 2);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 0xFFFF'FFFFUL);
+        REQUIRE(result.data.buf[1] == 0xFFFF'FFFFUL);
+    }
+}
+
+TEST_CASE("Num - simple subtraction", "[Num]")
+{
+    Num zero{0};
+    Num plusone{1};
+    Num plustwo{2};
+    Num minusone{-1};
+    Num minustwo{-2};
+
+    SECTION("Subtracting zero")
+    {
+        Num result = zero - zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+
+        result = zero;
+        result -= zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+
+        result = plusone - zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = minusone - zero;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
+    }
+
+    SECTION("Subtracting positive and positive")
+    {
+        Num result = plusone - plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = plusone;
+        result -= plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = plusone - plustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = plustwo - plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = plustwo - plustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+    }
+
+    SECTION("Subtracting positive and negative")
+    {
+        Num result = plusone + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = plusone;
+        result += minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = plusone + minustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = plustwo + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+    }
+
+    SECTION("Subtracting negative and positive")
+    {
+        Num result = minusone + plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = minusone;
+        result += plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 0);
+        REQUIRE(result.data.sign == 0);
+
+        result = minusone + plustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == 0);
+        REQUIRE(result.data.buf[0] == 1);
+
+        result = minustwo + plusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 1);
+    }
+
+    SECTION("Subtracting negative and negative")
+    {
+        Num result = minusone + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 2);
+
+        result = minusone;
+        result += minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 2);
+
+        result = minusone + minustwo;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 3);
+
+        result = minustwo + minusone;
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 1);
+        REQUIRE(result.data.sign == -1);
+        REQUIRE(result.data.buf[0] == 3);
+    }
+
+    SECTION("Subtracting over a digit boundary")
     {
         // Add longer value to shorter value
         Num result = 0xFFFF'FFFF'FFFF'FFFFULL;
