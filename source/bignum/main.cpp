@@ -783,6 +783,41 @@ TEST_CASE("Num - multiply", "[Num]")
     }
 }
 
+TEST_CASE("Num - conversions", "[Num]")
+{
+    SECTION("string_view to number")
+    {
+        Num result;
+        result.from_string(std::string_view("12345678"));
+        REQUIRE(result == 12345678LL);
+        result.from_string(std::string_view("FFFFFFFF"), 16);
+        REQUIRE(result == (65536LL*65536)-1);
+        result.from_string(std::string_view("377"), 8);
+        REQUIRE(result == 255);
+        result.from_string(std::string_view("F0F0'F0F0'F0F0'F0F0'0F0F'0F0F'0F0F'0F0F"), 16);
+        REQUIRE_FALSE(result.data.nonlocal);
+        REQUIRE(result.data.len == 4);
+        REQUIRE(result.data.buf[0] == 0x0F0F'0F0FL);
+        REQUIRE(result.data.buf[1] == 0x0F0F'0F0FL);
+        REQUIRE(result.data.buf[2] == 0xF0F0'F0F0L);
+        REQUIRE(result.data.buf[3] == 0xF0F0'F0F0L);
+    }
+
+    SECTION("Num to string")
+    {
+        char numbuf[256];
+        Num result = 12345678;
+        int L = result.to_cstring(numbuf, 256, 10);
+        REQUIRE(L < 256);
+        REQUIRE(L == 9); // includes zero terminator
+        REQUIRE(numbuf == std::string("12345678"));
+
+        result = Num(0xFFFFFFFF) * Num(0xFFFFFFFF);
+        L = result.to_cstring(numbuf, 256, 16);
+        REQUIRE(numbuf == std::string("FFFFFFFE00000001"));
+    }
+}
+
 #if 0
 #if COMPILE_NUM
 

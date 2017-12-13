@@ -14,203 +14,6 @@
 #if COMPILE_NUM
 
 // ======================================================================================
-// Basic constructors
-// - the empty constructor makes a small Num that's zero-length
-// - copy constructors make the minimal-sized Num; this may shrink data
-// ======================================================================================
-
-#if 0
-// Default constructor - create empty Num (zero-length small Num)
-Num::Num()
-{
-    #ifndef NDEBUG
-    memset(&small, 0, sizeof(small));
-    #endif
-
-    // There are two approaches here. The first is the minimalist-time approach, which
-    // only initializes the bare minumum. This matches the design of C, in which stack
-    // variables aren't initialized to a specific value, just to a legal value.
-#if 0
-    data.local = 1;
-    small.sign = 0;
-    small.len = 0;
-#else
-    prefix = 0;
-    data.local = 1;
-#endif
-
-    // All of this points out something interesting with our design. Maybe we should
-    // make the first bit be a "nonlocal" bit so it can be initialized to 0. And really,
-    // none of this matters, because we expect most Nums to be large and thus need
-    // allocation.
-}
-
-// Destructor - free any Num-related data
-Num::~Num() noexcept
-{
-    // If there was allocated data, free it
-    if (!data.local)
-        delete[] big.buf;
-}
-
-// Copy constructor (only used on new unconstructed object)
-Num::Num(const Num& rhs) noexcept
-{
-#if 0
-    // If small data on rhs, then no allocation needed on new object, just copy the
-    // old one completely. This will on average copy too much, but we don't care,
-    // trying to figure out how much to copy is probably slower.
-    if (rhs.data.local)
-        memcpy(&small, &rhs.small, sizeof(small));
-
-    // If the rhs Num would fit in a small object, then we "shrink" it. We do this
-    // because the canonical way to shrink buffers is to copy to a new object.
-    else if (rhs.data.len <= smallbufsize)
-    {
-        data.local = 1;
-        small.sign = rhs.big.sign;
-        small.len = rhs.data.len;
-        //memcpy(small.buf, rhs.big.buf, data.len*4);
-        copy_digits(small.buf, rhs.small.buf, small.len); // wow, this was a bug
-    }
-
-    // We have big data on rhs, so copy metadata and create a new buffer
-    // (no copy-on-write buffer sharing! bad idea!).
-    else
-    {
-        memcpy(&big, &rhs.big, sizeof(big));
-        big.bufsize = big.len;
-        big.buf = new uint32_t[big.bufsize];
-        //memcpy(big.buf, rhs.big.buf, big.len*4);
-        copy_digits(big.buf, rhs.big.buf, rhs.big.len);
-    }
-#else
-    // Copy the prefix: local + size + len
-    prefix = rhs.prefix;
-
-    // If the rhs is a small Num, just copy the whole thing, since a new Num is
-    // a small Num (no allocations needed)
-    if (rhs.data.local)
-        // When copying small data, we don't need allocation, we have a local buffer.
-        copy_digits(small.buf, rhs.small.buf, small.len);
-
-    // If the rhs Num has a big buffer but a small length, then we "shrink" it.
-    // We do this because the canonical way to shrink buffers is to copy to a new
-    // object.
-    else if (rhs.data.len <= smallbufsize)
-    {
-        prefix = rhs.prefix;
-        data.local = 1;
-        copy_digits(small.buf, rhs.big.buf, rhs.data.len);
-    }
-
-    // Otherwise, when copying big data, create a new buffer to copy into.
-    else
-    {
-        big.bufsize = big.len;
-        big.buf = new uint32_t[big.bufsize];
-        copy_digits(big.buf, rhs.big.buf, rhs.big.len);
-    }
-#endif
-}
-#endif
-
-// ======================================================================================
-// Basic copy assignment operators
-// - copy assignment only grows the dest buf as needed
-// - copy assignment doesn't shrink the dest buf
-// ======================================================================================
-
-#if 0
-// Copy assignment operator
-Num& Num::operator=(const Num& rhs) noexcept
-{
-    if (this == &rhs)
-        return *this; // do we REALLY need to be paranoid like this? I mean, really...
-
-#if 0
-    // Copying from a small Num
-    if (rhs.data.local)
-    {
-        // If we are copying a small Num to a small one, then just blockmove the data
-        if (data.local)
-            memcpy(&small, &rhs.small, sizeof(Num::small));
-
-        // If we are copying a small Num to a big one, don't downgrade this Num, just
-        // copy data. We know we already have an allocated buffer big enough.
-        else
-        {
-            big.sign = rhs.small.sign;
-            big.len = rhs.small.len;
-            //memcpy(big.buf, rhs.small.buf, rhs.small.len*4);
-            copy_digits(big.buf, rhs.small.buf, rhs.small.len);
-        }
-    }
-
-    // Copying from a large Num
-    else
-    {
-        // If the rhs won't fit, free any existing lhs data and make this look like a small Num
-        if (!data.local && rhs.big.len > big.bufsize)
-        {
-            delete[] big.buf;
-            data.local = 1;
-        }
-
-        // If we have no buffer, allocate one. Use the shorter size from the rhs.
-        // TBD we could downgrade here if rhs.len <= smallbufsize
-        if (data.local)
-        {
-            data.local = 0;
-            big.bufsize = rhs.big.len;
-            big.buf = new uint32_t[big.bufsize];
-        }
-
-        // Copy data
-        big.sign = rhs.big.sign;
-        big.len = rhs.big.len;
-        memcpy(big.buf, rhs.big.buf, big.len*4);
-    }
-#else
-    // This differs from construction in that we will keep an overlarge buffer;
-    // this is one of the two cases where an allocated buffer can hold data less
-    // than smallbufsize in length (the other is from math operators that produce
-    // a smaller result than the lhs operand)
-
-    // See if the new number will fit in the current space.
-    int bufsize = data.local ? smallbufsize : big.bufsize;
-    if (rhs.data.len > bufsize)
-    {
-        // If we have nonlocal data, free it; it's not big not, so we will
-        // allocate more.
-        if (!data.local)
-        {
-            delete[] big.buf;
-            data.local = 1; // temporarily a small Num
-        }
-
-        // If the data won't fit into a local buffer, allocate a new big one.
-        if (rhs.data.len > smallbufsize)
-        {
-            data.local = 0;
-            big.bufsize = rhs.data.len;
-            big.buf = new uint32_t[big.bufsize];
-        }
-    }
-
-    // Copy the digits
-    copy_digits(databuffer(), rhs.cdatabuffer(), rhs.data.len);
-
-    // Copy length and sign
-    data.sign = rhs.data.sign;
-    data.len = rhs.data.len;
-#endif
-
-    return *this;
-}
-#endif
-
-// ======================================================================================
 // Copy constructors that convert other types to Num
 // ======================================================================================
 
@@ -390,7 +193,7 @@ int Num::to_cstring(char* p, int buflen, int base)
         t.divmod(base, quotient, remainder);
         auto r = remainder.to_int64();
         char ch = '0' + (char) r;
-        if (r > 9) ch += ('A' - '9' + 1); // turn 10+ into 'A'+
+        if (r > 9) ch += ('A' - '9' - 1); // turn 10+ into 'A'+
 
         PUT(ch);
         t = quotient; // replace with pointer swap
@@ -420,6 +223,8 @@ bool Num::from_cstring(char const* p, int base)
     
     for (; *p; p++)
     {
+        if (*p == '\'')
+            continue;
         char digit = *p - '0';
         if (base > 10 && digit >= 10)
             digit = (*p & 0x0F) + 9;
@@ -440,6 +245,9 @@ const Num& Num::from_string(const std::string_view& s, int base)
 
     for (char ch : s)
     {
+        if (ch == '\'')
+            continue;
+
         // convert '0'...'9' to 0..9
         int digit = ch - '0';
 
