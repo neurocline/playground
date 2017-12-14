@@ -166,19 +166,31 @@ bool MultiwordDivide(
     #endif
 
     // Normalize divisor so that its high-order bit is set to 1.
+    // Note uint16_t >> 16 is not undefined, but uint32_t >> 32 is undefined,
+    // becasuse C promotes to int or uint when doing math. So we just
+    // check and if we don't need to bitshift, we just copy
     int s = ContainsType<WORD>::LeadingZeros(v[n-1]);
     static constexpr int shift = ContainsType<WORD>::shift;
+    if (s == 0)
+    {
+        for (int i = 0; i < n; i++) vn[i] = v[i];
+        for (int i = 0; i < m; i++) un[i] = u[i];
+        un[m] = 0;
+    }
+    else
+    {
 
-    for (int i = n-1; i > 0; i--)
-        vn[i] = (v[i] << s) | (v[i-1] >> (shift-s));
-    vn[0] = v[0] << s;
+        for (int i = n-1; i > 0; i--)
+            vn[i] = (v[i] << s) | (v[i-1] >> (shift-s));
+        vn[0] = v[0] << s;
 
-    // Shift dividend left by the same amount; this may mean appending a high-order
-    // digit on the dividend, so we just always add it even if it is zero.
-    un[m] = u[m-1] >> (shift-s);
-    for (int i = m-1; i > 0; i--)
-        un[i] = (u[i] << s) | (u[i-1] >> (shift-s));
-    un[0] = u[0] << s;
+        // Shift dividend left by the same amount; this may mean appending a high-order
+        // digit on the dividend, so we just always add it even if it is zero.
+        un[m] = u[m-1] >> (shift-s);
+        for (int i = m-1; i > 0; i--)
+            un[i] = (u[i] << s) | (u[i-1] >> (shift-s));
+        un[0] = u[0] << s;
+    }
 
     // Main loop
     for (int j = m-n; j >= 0; j--)

@@ -11,8 +11,6 @@
 #include <cstring>
 #include <cstdint>
 
-#if COMPILE_NUM
-
 // ======================================================================================
 // Copy constructors that convert other types to Num
 // ======================================================================================
@@ -267,95 +265,6 @@ const Num& Num::from_string(const std::string_view& s, int base)
 // Buffer management
 // ======================================================================================
 
-#if 0
-// Reserve space (used for a Num we know is going to get large)
-// This will never reduce the Num buffer below the size of the current buffer. The way
-// to shrink an allocation is to copy-construct a new number from an existing one,
-// or copy-assign into a small Num.
-void Num::reserve(int size)
-{
-    // If we are already at least this size, ignore
-    if (size <= smallbufsize || !data.local && size <= big.bufsize)
-        return;
-
-    // Allocate new buffer
-    uint32_t* newbuf = new uint32_t[size];
-
-    // Copy existing data into it
-    memcpy(newbuf, databuffer(), data.len*4);
-
-    // If there is an existing buffer, release it
-    if (!data.local)
-        delete[] big.buf;
-
-    data.local = 0;
-    big.bufsize = size;
-    big.buf = newbuf;
-}
-
-// Resize Num
-uint32_t* Num::resize(int size)
-{
-    if (size == data.len)
-        return databuffer();
-    else if (size < data.len)
-        return shrink(data.len - size);
-    else
-        return grow(size - data.len);
-}
-
-// Grow the Num length.
-// Return a pointer to the Num buffer, since grow can reallocate data.
-// This initializes new storage.
-uint32_t* Num::grow(int amt)
-{
-    int newlen = data.len + amt;
-    int32_t obufsize = capacity();
-    uint32_t* obuf = databuffer();
-
-    // If we have a small buf that isn't big enough, or we have a big buf that has no
-    // more space in reserve, allocate a new buffer and copy the existing data into it
-    if (newlen > obufsize)
-    {
-        int32_t newbufsize = obufsize;
-        while (newbufsize < newlen)
-            newbufsize *= 2;
-
-        uint32_t* newbuf = new uint32_t[newbufsize];
-        memcpy(newbuf, obuf, data.len*4);
-
-        if (!data.local)
-            delete[] obuf;
-
-        data.local = 0;
-        big.buf = newbuf;
-        big.bufsize = newbufsize;
-        obuf = newbuf;
-    }
-
-    // Optionally initialize the new part of the Num
-    // (TBD get rid of the need for this?)
-    memset(&obuf[data.len], 0, amt*sizeof(uint32_t));
-    data.len = newlen;
-
-    return obuf;
-}
-
-// Remove the most significant digit from Num (assumed to be zero)
-// This will not get rid of any allocation or shrink a buffer
-uint32_t* Num::shrink(int amt)
-{
-    data.len -= amt;
-
-    if (data.len < 0)
-        data.len = 0;
-    if (data.len == 0)
-        data.sign = 0; // zero is always a positive number
-
-    return databuffer();
-}
-#endif
-
 // Resize Num so that the highest digit is non-zero
 void Num::trim()
 {
@@ -450,24 +359,3 @@ uint32_t& Num::operator [](int i)
 // 2^248 = 4.52e74
 // 64-bit float has range 1e-308 to 1e308 but only 53 bits of precision
 // 100! = 9.3e157
-
-// --------------------------------------------------------------------------------------
-
-// TBD - create a make_Num helper that creates a single allocation containing both the
-// Num and its allocated data (just like make_shared creates a shared pointer and its
-// owned data in a single allocation).
-// Of course, for this to mean anything, it means we need to create a Num on the heap
-// with a predefined reserve. It's hard to figure out what this API should look like
-// and be at all consistent with the rest of the class.
-// And the destructor for an object allocated this way is different, because there
-// is no freeing of the underlying storage, and even worse, we can't resize it. So
-// maybe this API is a dumb idea.
-#if 0
-Num* make_Num(int size)
-{
-    return nullptr;
-}
-#endif
-
-#endif // COMPILE_NUM
-

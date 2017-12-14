@@ -8,8 +8,6 @@
 
 #include <cassert>
 
-#if COMPILE_NUM
-
 // ======================================================================================
 // Addition
 //
@@ -295,5 +293,3 @@ Num& Num::operator-=(const uint32_t& digit)
     return operator-=(Num{digit});
 }
 #endif
-
-#endif // COMPILE_NUM

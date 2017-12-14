@@ -783,6 +783,66 @@ TEST_CASE("Num - multiply", "[Num]")
     }
 }
 
+TEST_CASE("Num - divide", "[Num]")
+{
+    Num ten_e3 = Num(1000);
+    Num ten_e6 = ten_e3 * ten_e3;
+    Num ten_e9 = ten_e6 * ten_e3;
+    Num ten_e12 = ten_e6 * ten_e6;
+    Num ten_e18 = ten_e9 * ten_e9;
+    Num ten_e24 = ten_e12 * ten_e12;
+    Num ten_e36 = ten_e18 * ten_e18;
+    Num ten_e48 = ten_e24 * ten_e24;
+    Num ten_e72 = ten_e36 * ten_e36;
+
+    SECTION(" Num - check dividends")
+    {
+        char numbuf[256];
+        int L = ten_e48.to_cstring(numbuf, 256);
+        REQUIRE(L <= 256);
+        REQUIRE(L == 50);
+        REQUIRE(0 == strcmp(numbuf, "1000000000000000000000000000000000000000000000000"));
+        L = ten_e72.to_cstring(numbuf, 256);
+        REQUIRE(L <= 256);
+        REQUIRE(L == 74);
+        REQUIRE(0 == strcmp(numbuf, "1000000000000000000000000000000000000000000000000000000000000000000000000"));
+    }
+
+    SECTION("Num - small divisions")
+    {
+        Num result = ten_e6 / ten_e3;
+        REQUIRE(result == ten_e3);
+        result = (ten_e6 + ten_e3 - 1) / ten_e3;
+        REQUIRE(result == ten_e3);
+
+        result = ten_e3 / ten_e3;
+        REQUIRE(result == 1);
+        result = ten_e9 / ten_e3;
+        REQUIRE(result == ten_e6);
+        result = ten_e3 / ten_e6;
+        REQUIRE(result == 0);
+    }
+
+    SECTION("Num - large divisions")
+    {
+        Num result = ten_e36 / ten_e12;
+        REQUIRE(result == ten_e24);
+        result = ten_e72 / ten_e36;
+        REQUIRE(result == ten_e36);
+
+        result = ten_e72 / ten_e48;
+        char numbuf[256];
+        result.to_cstring(numbuf, 256);
+        REQUIRE(result == ten_e24);
+
+        result = ten_e72 / ten_e6;
+        result = result / ten_e6;
+        result = result / ten_e6;
+        result = result / ten_e6;
+        REQUIRE(result == ten_e48);
+    }
+}
+
 TEST_CASE("Num - conversions", "[Num]")
 {
     SECTION("string_view to number")
@@ -819,7 +879,6 @@ TEST_CASE("Num - conversions", "[Num]")
 }
 
 #if 0
-#if COMPILE_NUM
 
 TEST_CASE("Num - multiply and divide", "[Num]")
 {
@@ -942,7 +1001,6 @@ TEST_CASE("string to Num", "[Num]")
     }
 }
 
-#endif // #if COMPILE_NUM
 #endif
 
 // old tests
@@ -981,20 +1039,6 @@ TEST_CASE("Num - construction", "[Num]")
     REQUIRE(neg1[0] == 0x0000'0001);
     REQUIRE(neg1.to_int64() == -1);
     REQUIRE(neg1.len() == 1);
-}
-
-TEST_CASE("Num - util", "[Num]")
-{
-    Num zero{0LL};
-    REQUIRE(zero.len() == 0);
-
-    Num pos{1};
-    REQUIRE(pos.len() == 1);
-    REQUIRE(pos.sign() >= 0);
-
-    Num neg{-1};
-    REQUIRE(neg.len() == 1);
-    REQUIRE(neg.sign() < 0);
 }
 
 TEST_CASE("Num - addition", "[Num]")
@@ -1070,37 +1114,6 @@ TEST_CASE("Num - addition", "[Num]")
     REQUIRE(v[0] == 204);
 }
 
-TEST_CASE("Num - subtraction", "[Num]")
-{
-    Num v;
-    Num v1;
-    Num v2;
-
-    // subtract positive and negative numbers
-    v1 = 1;
-    v2 = -1;
-    v = v1 - v2;
-    REQUIRE(v.len() == 1);
-    REQUIRE(v.sign() >= 0);
-    REQUIRE(v[0] == 2);
-
-    v2 = 1;
-    v = v1 - v2;
-    REQUIRE(v.len() == 0);
-    REQUIRE(v.sign() >= 0);
-
-    v1 = -1;
-    v = v1 - v2;
-    REQUIRE(v.len() == 1);
-    REQUIRE(v.sign() < 0);
-    REQUIRE(v[0] == 2);
-
-    v2 = -1;
-    v = v1 - v2;
-    REQUIRE(v.len() == 0);
-    REQUIRE(v.sign() >= 0);
-}
-
 TEST_CASE("Low-level divide", "[Num]")
 {
     uint32_t dividend[4];
@@ -1156,26 +1169,6 @@ TEST_CASE("Num - division", "[Num]")
     REQUIRE(v.len() == 1);
     REQUIRE(v[0] == 1'000'000);
 #endif
-}
-
-TEST_CASE("Num - multiplication", "[Num]")
-{
-    Num v;
-    Num v1;
-    Num v2;
-
-    v1 = 1;
-    v2 = 1;
-    v = v1 * v2;
-    REQUIRE(v.len() == 1);
-    REQUIRE(v[0] == 1);
-
-    v1 = 0xFFFF'FFFFL;
-    v2 = 0xFFFF'FFFFL;
-    v = v1 * v2;
-    REQUIRE(v.len() == 2);
-    REQUIRE(v[0] == 0x0000'0001L);
-    REQUIRE(v[1] == 0xFFFF'FFFEL);
 }
 #endif
 
@@ -1387,194 +1380,5 @@ TEST_CASE("Num - to/from string", "[Num]")
         v *= 10;
         strcat(mbuf, "0");
     }
-}
-#endif
-
-#if 0
-TEST_CASE("Num - buffer management", "[Num]")
-{
-    // Test reserve - it should preserve existing data
-    Num resizing;
-    REQUIRE(resizing.data.local == 1);
-    REQUIRE(resizing.small.len == 0);
-
-    resizing.reserve(2);
-    REQUIRE(resizing.data.local == 1);
-    resizing.small.len = 2;
-    resizing.small.buf[0] = 0;
-    resizing.small.buf[1] = 1;
-
-    resizing.reserve(8);
-    REQUIRE(resizing.data.local == 0);
-    REQUIRE(resizing.big.bufsize == 8);
-    for (uint32_t i = 0; i < 2; i++)
-        REQUIRE(resizing.big.buf[i] == i);
-    for (uint32_t i = 0; i < 8; i++)
-        resizing.big.buf[i] = i;
-    resizing.big.len = 8;
-
-    resizing.reserve(16);
-    REQUIRE(resizing.data.local == 0);
-    REQUIRE(resizing.big.bufsize == 16);
-    for (uint32_t i = 0; i < 8; i++)
-        REQUIRE(resizing.big.buf[i] == i);
-    for (uint32_t i = 0; i < 16; i++)
-        resizing.big.buf[i] = i;
-    resizing.big.len = 16;
-
-    // Test grow (internal function)
-    Num growv;
-    REQUIRE(growv.small.len == 0);
-    growv.grow(1);
-    REQUIRE(growv.data.local == 1);
-    REQUIRE(growv.small.len == 1);
-    growv.grow(6);
-    REQUIRE(growv.data.local == 1);
-    REQUIRE(growv.small.len == 7);
-    growv.grow(1);
-    REQUIRE(growv.data.local == 0);
-    REQUIRE(growv.big.len == 8);
-    growv.grow(8);
-    REQUIRE(growv.data.local == 0);
-    REQUIRE(growv.big.len == 16);
-
-    // Test trim - leave number in canonical form
-    {
-    Num trimv;
-    trimv.reserve(2);
-    trimv.databuffer()[0] = 5;
-    trimv.databuffer()[1] = 8;
-    trimv.small.len = 2;
-
-    trimv.trim();
-    REQUIRE(trimv.small.len == 2);
-    REQUIRE(trimv.databuffer()[0] == 5);
-    REQUIRE(trimv.databuffer()[1] == 8);
-
-    trimv.databuffer()[1] = 0;
-    trimv.trim();
-    REQUIRE(trimv.small.len == 1);
-    REQUIRE(trimv.databuffer()[0] == 5);
-    }
-
-    // Test shrink (internal function)
-    {
-    Num shrinkv;
-    REQUIRE(shrinkv.small.len == 0);
-    shrinkv.shrink(1);
-    REQUIRE(shrinkv.small.len == 0);
-    shrinkv.grow(10);
-    REQUIRE(shrinkv.big.len == 10);
-    shrinkv.shrink(8);
-    REQUIRE(shrinkv.big.len == 2);
-    }
-}
-
-TEST_CASE("Num - big 5 (constructors and copy assignment operators)", "[Num]")
-{
-    // Basic constructor
-    Num zero;
-    REQUIRE(zero.data.local == 1);
-    REQUIRE(zero.data.len == 0);
-    REQUIRE(zero.data.sign == 0);
-
-    // Make some source numbers to test with
-    // 16-digit zero
-    Num zero16;
-    zero16.reserve(16);
-    REQUIRE(zero16.data.local == 0);
-    REQUIRE(zero16.big.buf != nullptr);
-    REQUIRE(zero16.data.len == 0);
-    REQUIRE(zero16.big.bufsize == 16);
-
-    // 2-digit nonzero
-    Num num2;
-    num2.small.buf[0] = 0x0000'000FL;
-    num2.small.buf[1] = 0xF000'0000L;
-    num2.small.len = 2;
-    REQUIRE(num2.data.local == 1);
-    REQUIRE(num2.small.len == 2);
-
-    // 16-digit nonzero
-    Num num16;
-    num16.reserve(16);
-    REQUIRE(num16.big.bufsize == 16);
-    //memset(num16.big.buf, 0, num16.big.bufsize*4);
-    num16.clear_digits(0, num16.big.bufsize);
-    num16.big.len = 16;
-    num16.big.buf[15] = 0x9988'7766L;
-    REQUIRE(num16.data.local == 0);
-    REQUIRE(num16.big.len == 16);
-
-    // 8-digit nonzero in 16-digit buffer
-    Num num8_16;
-    num8_16.reserve(16);
-    REQUIRE(num8_16.big.bufsize == 16);
-    //memset(num8_16.big.buf, 0, num8_16.big.bufsize*4);
-    num8_16.clear_digits(0, num8_16.big.bufsize);
-    num8_16.big.len = 8;
-    num8_16.big.buf[7] = 0x1234'5678L;
-    REQUIRE(num8_16.data.local == 0);
-    REQUIRE(num8_16.big.len == 8);
-
-    // Copy constructor of big zero - this should produce a small zero
-    Num copyzero16{zero16};
-    REQUIRE(copyzero16.data.local == 1);
-    REQUIRE(copyzero16.small.len == 0);
-
-    // Copy constructor of small num
-    Num smallcopy{num2};
-    REQUIRE(smallcopy.data.local == 1);
-    REQUIRE(smallcopy.small.len == 2);
-    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
-    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
-
-    // Copy a 8-digit number that is in a 16-digit buffer
-    Num bigcopy{num8_16};
-    REQUIRE(bigcopy.data.local == 0);
-    REQUIRE(bigcopy.big.len == 8);
-    REQUIRE(bigcopy.big.bufsize == 8);
-    REQUIRE(bigcopy.big.buf[7] == 0x1234'5678L);
-
-    // Copy assign a zero
-    Num copyzero = zero;
-    REQUIRE(copyzero.data.local == 1);
-    REQUIRE(copyzero.small.len == 0);
-
-    // Copy assign a small Num
-    Num copysmall = num2;
-    REQUIRE(smallcopy.data.local == 1);
-    REQUIRE(smallcopy.small.len == 2);
-    REQUIRE(smallcopy.small.buf[0] == 0x0000'000FL);
-    REQUIRE(smallcopy.small.buf[1] == 0xF000'0000L);
-
-    // Copy assign a small Num into a big one - it stays a big Num
-    Num bignum2;
-    bignum2.reserve(16);
-    bignum2 = num2;
-    REQUIRE(bignum2.data.local == 0);
-    REQUIRE(bignum2.big.bufsize == 16);
-    REQUIRE(bignum2.big.len == 2);
-    REQUIRE(bignum2.big.buf[0] == 0x0000'000FL);
-    REQUIRE(bignum2.big.buf[1] == 0xF000'0000L);
-
-    // Copy assign a big Num into a big one with a buffer that's too small
-    Num bignum8;
-    bignum8.reserve(8);
-    bignum8 = num16;
-    REQUIRE(bignum8.data.local == 0);
-    REQUIRE(bignum8.big.bufsize == 16);
-    REQUIRE(bignum8.big.len == 16);
-    REQUIRE(bignum8.big.buf[15] == 0x9988'7766L);
-
-    // Copy assign a big Num into one with a bigger buffer - the dest
-    // retains its bigger buffer
-    Num bignum32;
-    bignum32.reserve(32);
-    bignum32 = num16;
-    REQUIRE(bignum32.data.local == 0);
-    REQUIRE(bignum32.big.bufsize == 32);
-    REQUIRE(bignum32.big.len == 16);
-    REQUIRE(bignum32.big.buf[15] == 0x9988'7766L);
 }
 #endif

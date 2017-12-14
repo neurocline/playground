@@ -34,7 +34,7 @@ public:
     // It returns the digits as a convenience, since the buffer may have moved.
     uint32_t* resize(int size);
 
-    // Reserve space for a large NumBuffer. This can never ben used to shrink the size
+    // Reserve space for a large NumBuffer. This can never be used to shrink the size
     // of a NumBuffer. Returns a pointer to the (new) buffer as a convenience.
     uint32_t* reserve(int size);
 
@@ -86,9 +86,6 @@ public:
 static_assert(sizeof(NumBuffer) == 32, "NumBuffer unexpected size");
 static_assert(sizeof(NumBuffer::buf) >= sizeof(NumBuffer::big), "NumBuffer::small data too small!");
 
-#define COMPILE_NUM 1
-#if COMPILE_NUM 
-
 #include <string>
 #include <string_view>
 
@@ -109,7 +106,7 @@ public:
 
     // Reserve space for a large Num. This can never ben used to shrink the size
     // of a Num - to "garbage collect", copy to a new zero-length Num.
-    void reserve(int size);
+    void reserve(int size) { data.reserve(size); }
 
     // Construct Num from integral primitives
     // Do we really need int and unsigned int?
@@ -149,19 +146,21 @@ public:
     // - Num op uint32_t
     // - uint32_t op Num
     // TBD integral variants with friend operator (instead of conversion to Num which takes time)
-    #define MAKE_OP(OP) \
+    #define ARITH_OP(OP) \
         Num operator OP (const Num& rhs); \
         Num& operator OP##= (const Num& rhs); \
         /*Num operator OP (const uint32_t& rhs);*/ \
         /*Num& operator OP##= (const uint32_t& rhs)*/ \
         ;
 
-    MAKE_OP(+)
-    MAKE_OP(-)
-    MAKE_OP(*)
-    MAKE_OP(/)
-    MAKE_OP(%)
-    MAKE_OP(^)
+    ARITH_OP(+)
+    ARITH_OP(-)
+    ARITH_OP(*)
+    ARITH_OP(/)
+    ARITH_OP(%)
+    ARITH_OP(^)
+
+    #undef ARITH_OP
 
     // divmod instruction that returns both remainder and quotient
     void divmod(const Num& rhs, Num& quotient, Num& remainder);
@@ -211,17 +210,6 @@ public:
     // Convert Num to string
     int to_cstring(char* p, int len, int base=10);
     std::string to_string(int base=10);
-
-    #if 0
-    // Sign of number
-    enum class Sign
-    {
-        Positive = 0,
-        Negative = 1
-    };
-
-    Sign sign() const { return data.sign ? Sign::Negative : Sign::Positive; }
-    #endif
 
     void from_int64(long long v);
     void from_uint64(unsigned long long uv);
@@ -306,7 +294,5 @@ bool MultiwordDivide(
 // Math terms
 // addition: augend + addend
 // subtraction: minuend - subtrahend
-// multiply: multiplicand × multiplier
-// division: dividend ÷ divisor
-
-#endif // COMPILE_NUM
+// multiply: multiplicand Ã— multiplier
+// division: dividend Ã· divisor
