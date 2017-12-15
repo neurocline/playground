@@ -2,10 +2,11 @@
 
 #include "Num.h"
 
+#include <cstring>
+#include <ctime>
+
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "../catch.hpp"
-
-//#include <cstring>
 
 TEST_CASE("NumBuffer - construct/destruct", "[NumBuffer]")
 {
@@ -915,7 +916,87 @@ TEST_CASE("Num - exponentiation", "[Num]")
     char buf[1024];
     int N = huge.to_cstring(buf, 1024);
     REQUIRE(N <= 1024);
-    printf(buf); printf("\n");
+    REQUIRE(N == 26);
+    REQUIRE(buf == std::string("2417851639229258349412352"));
+    //printf(buf); printf("\n");
+
+    Num googol = Num(10)^Num(100);
+    REQUIRE(googol.data.len == 11);
+    N = googol.to_cstring(buf, 1024);
+    REQUIRE(N <= 1024);
+    REQUIRE(N == 102);
+    REQUIRE(buf == std::string("10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+}
+
+TEST_CASE("Num - Mersenne primes", "[Num]")
+{
+    // start out with 2^0
+    int p = 0;
+    Num twop = 1;
+
+    std::time_t start = std::time(nullptr);
+
+    int mersenne_factors[] = {
+        2, 3, 5, 7, 13,
+        17, 19, 31, 61, 89,
+        107, 127, 521, 607, 1279,
+        2203, 2281, 3217, 4253, 4423,
+        9689, 9941, 11213, 19937, 21701,
+         23'209,      44'497,    86'243,    110'503,    132'049,
+        216'091,     756'839,   859'433,  1'257'787,  1'398'269,
+        2'976'221, 3'021'377, 6'972'593, 13'466'917, 20'996'011,
+        0
+    };
+
+    const int BN = 23'000'000;
+    char* buf = new char[BN];
+    for (int i = 0; mersenne_factors[i] != 0; i++)
+    {
+        int nextpow = mersenne_factors[i];
+        twop *= Num(2) ^ Num(nextpow - p);
+        p = mersenne_factors[i];
+
+        Num mp = twop - Num(1);
+        int N = mp.to_cstring(buf, BN);
+        REQUIRE(N <= BN);
+
+        std::time_t now = std::time(nullptr);
+        std::cout << "t+" << now-start << ":  d=" << mp.data.len << "  l=" << N-1;
+        std::cout << "  n=" << i+1 << "  p=" << p;
+        if (strlen(buf) < 2*12+2)
+            std::cout << "  Mp=" << buf << std::endl;
+        else
+        {
+            char prefix[13]; char suffix[13];
+            memcpy(prefix, buf, 12); prefix[12] = 0;
+            memcpy(suffix, buf+strlen(buf)-12, 12); suffix[12] = 0;
+            std::cout << "  Mp=" << prefix << "..." << suffix << std::endl;
+        }
+    }
+
+    delete[] buf;
+
+    //Num mersenne74 = Num(2)^Num(74'207'281);
+    //REQUIRE(mersenne74.data.len == 500);
+}
+
+TEST_CASE("Num - very large values", "[Num]")
+{
+    Num huge1 = Num(2)^(Num(3)^Num(4));
+    Num huge2 = Num(2)^(Num(3)^Num(5));
+    Num huge3 = Num(3)^(Num(4)^Num(5));
+
+    Num huge4 = huge1 * huge2 * huge3;
+    huge4 /= huge1;
+    REQUIRE(huge4 == huge2*huge3);
+    huge4 /= huge2;
+    REQUIRE(huge4 == huge3);
+
+    huge4 = huge1 * huge2 * huge3;
+    huge4 /= huge2;
+    REQUIRE(huge4 == huge1*huge3);
+    huge4 /= huge1;
+    REQUIRE(huge4 == huge3);
 }
 
 TEST_CASE("Num - conversions", "[Num]")

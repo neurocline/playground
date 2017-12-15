@@ -147,47 +147,12 @@ Num Num::operator/(const Num& rhs)
 // TBD call divmod instead of duplicating code here
 Num& Num::operator/=(const Num& rhs)
 {
-#if 0
-    // If we are dividing into zero, it's always going to be zero
-    if (data.len == 0)
-        return *this;
-
-    // Divide magnitudes
-    // TBD temp space for quotient and remainder for long numbers
-    Num quotient;
-    Num remainder;
-    int dividendSize = data.len;
-    int divisorSize = rhs.data.len;
-    quotient.resize(int16_t(dividendSize - divisorSize + 1));
-    remainder.resize(int16_t(divisorSize));
-
-    bool ok = MultiwordDivide<uint32_t>(
-        quotient.databuffer(), remainder.databuffer(), databuffer(), rhs.cdatabuffer(), data.len, rhs.data.len);
-    assert(ok);
-    if (!ok)
-        return *this; // this is not supposed to ever happen
-
-    // Move the quotient into place as the result
-    int qlen = data.len - rhs.data.len + 1;
-    data.len = qlen; // TBD scan to make sure there are no leading zeros
-    std::memcpy(databuffer(), quotient.databuffer(), data.len * sizeof(uint32_t));
-
-    // Now trim the result size down to its actual value, because
-    // m+n was the max, not the actual size. We'll have to go at
-    // most m/2 places.
-    trim();
-
-    // The sign is positive if both signs are equal, otherwise negative
-    data.sign = (data.sign == rhs.data.sign) ? 0 : -1;
-    return *this;
-#else
     Num quotient;
     Num remainder;
     divmod(rhs, quotient, remainder);
     *this = quotient;
 
     return *this;
-#endif
 }
 
 // Num / uint32_t

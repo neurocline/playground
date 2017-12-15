@@ -200,14 +200,20 @@ int Num::to_cstring(char* p, int buflen, int base)
 
     PUT(0)
 
-    // now reverse the string
-    int j = sign ? 1 : 0; // skip any leading '-' sign
-    int k = i - 2; // leave zero-terminator in place
-    while (j < k)
+    // now reverse the string unless we exceeded the size of the buffer
+    // (all we return in that case is the buffer length we need)
+    if (i > buflen)
+        p[0] = 0;
+    else
     {
-        char c = p[j]; p[j] = p[k]; p[k] = c;
-        j++;
-        k--;
+        int j = sign ? 1 : 0; // skip any leading '-' sign
+        int k = i - 2; // leave zero-terminator in place
+        while (j < k)
+        {
+            char c = p[j]; p[j] = p[k]; p[k] = c;
+            j++;
+            k--;
+        }
     }
     return i;
     #undef PUT
