@@ -843,6 +843,81 @@ TEST_CASE("Num - divide", "[Num]")
     }
 }
 
+TEST_CASE("Num - aliasing", "[Num]")
+{
+    SECTION("Num - alias add")
+    {
+        Num a = 5;
+        a += a;
+        REQUIRE(a == 10);
+    }
+
+    SECTION("Num - alias subtract")
+    {
+        Num a = 5;
+        a -= a;
+        REQUIRE(a == 0);
+    }
+
+    SECTION("Num - alias multiply")
+    {
+        Num a = 5;
+        a *= a;
+        REQUIRE(a == 25);
+    }
+
+    SECTION("Num - alias divide")
+    {
+        Num a = 5;
+        a /= a;
+        REQUIRE(a == 1);
+    }
+}
+
+TEST_CASE("Num - shift", "[Num]")
+{
+    Num result;
+
+    result = 0;
+    result >>= 1;
+    REQUIRE(result == 0);
+
+    result = 1;
+    result >>= 1;
+    REQUIRE(result == 0);
+
+    result = 2;
+    result >>= 1;
+    REQUIRE(result == 1);
+
+    result = 3;
+    result >>= 1;
+    REQUIRE(result == 1);
+
+    result = 0x0FFF'FFFF'FFFF'FFFFLL;
+    result >>= 8;
+    REQUIRE(result == 0xF'FFFF'FFFF'FFFFLL);
+
+    result = 0x0FFF'FFFF'FFFF'FFFFLL;
+    result >>= 33;
+    REQUIRE(result == 0x7FF'FFFFL);
+}
+
+TEST_CASE("Num - exponentiation", "[Num]")
+{
+    Num ten = 10;
+    Num two = 2;
+
+    Num ten_e2 = ten^two;
+    REQUIRE(ten_e2 == 100);
+
+    Num huge = Num(2)^(Num(3)^Num(4));
+    char buf[1024];
+    int N = huge.to_cstring(buf, 1024);
+    REQUIRE(N <= 1024);
+    printf(buf); printf("\n");
+}
+
 TEST_CASE("Num - conversions", "[Num]")
 {
     SECTION("string_view to number")

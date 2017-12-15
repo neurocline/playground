@@ -162,6 +162,10 @@ public:
 
     #undef ARITH_OP
 
+    // shifts - these always operate on the absolute value of the number
+    Num& operator>>(const int rhs);
+    Num& operator>>=(const int rhs);
+
     // divmod instruction that returns both remainder and quotient
     void divmod(const Num& rhs, Num& quotient, Num& remainder);
     //uint32_t divmod(uint32_t rhs, Num& quotient);
@@ -182,7 +186,6 @@ public:
     Num& operator%=(const Num& rhs);
     Num& operator^=(const Num& rhs); // exponentiation
 
-    Num& operator>>=(const int rhs);
 
     // Chunk-size read and write to the underlying storage, for
     // setting larger-sized values without parsing a string

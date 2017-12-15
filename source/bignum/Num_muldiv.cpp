@@ -43,6 +43,12 @@ Num& Num::operator*=(const Num& rhs)
     // Even though this is lhs *= rhs, we need to move the lhs to a temp value because
     // we are going to write to parts of lhs constantly during the computation.
     Num multiplicand{*this};
+
+    // We cannot clear out the lhs yet, because it could be the rhs as well
+    // (e.g. n *= n). So set up a temp to accumulate into that we will move into
+    // *this at the end.
+    Num lhs;
+
     auto candbuf = multiplicand.cdatabuffer();
     auto plierbuf = rhs.cdatabuffer();
 
@@ -51,9 +57,9 @@ Num& Num::operator*=(const Num& rhs)
     int m = rhs.data.len;
     int n = multiplicand.data.len;
 
-    resize(m + n);
-    data.clear_digits(0, n); // initialize |multiplicand| digits to zero (initial partial sums)
-    auto lbuf = databuffer();
+    lhs.resize(m + n);
+    lhs.data.clear_digits(0, n); // initialize |multiplicand| digits to zero (initial partial sums)
+    auto lbuf = lhs.databuffer();
 
     // Loop through each digit of the multiplier
     for (int j = 0; j < m; j++)
@@ -77,11 +83,12 @@ Num& Num::operator*=(const Num& rhs)
     }
 
     // The sign of the result is the exclusive-or of the signs of the operands
-    data.sign = (multiplicand.data.sign == rhs.data.sign) ? 0 : -1;
+    lhs.data.sign = (multiplicand.data.sign == rhs.data.sign) ? 0 : -1;
 
     // Now trim the result size down to its actual value, because
     // m+n was the max, not the actual size. We'll have to go at
     // most n places (e.g. n was 1)
+    *this = std::move(lhs);
     trim();
 
     return *this;
