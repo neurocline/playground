@@ -56,6 +56,19 @@ TEST_CASE("NumBuffer - construct/destruct", "[NumBuffer]")
         buf.~NumBuffer();
         REQUIRE(buf.big.digits == nullptr);
     }
+
+    SECTION("Testing alignment")
+    {
+        uint32_t pad1;
+        NumBuffer buf1;
+        uint32_t pad2;
+        NumBuffer buf2;
+        uint32_t pad3;
+        NumBuffer buf3;
+        uint32_t pad4;
+
+        REQUIRE((uintptr_t(&buf1) & 0x07) == 0);
+    }
 }
 
 TEST_CASE("NumBuffer - buffer management", "[NumBuffer]")
@@ -901,7 +914,7 @@ TEST_CASE("Num - shift", "[Num]")
 
     result = 0x0FFF'FFFF'FFFF'FFFFLL;
     result >>= 33;
-    REQUIRE(result == 0x7FF'FFFFL);
+    REQUIRE(result == 0x7FF'FFFFLL);
 }
 
 TEST_CASE("Num - exponentiation", "[Num]")
@@ -940,11 +953,13 @@ TEST_CASE("Num - Mersenne primes", "[Num]")
         2, 3, 5, 7, 13,
         17, 19, 31, 61, 89,
         107, 127, 521, 607, 1279,
+        #if 0
         2203, 2281, 3217, 4253, 4423,
         9689, 9941, 11213, 19937, 21701,
          23'209,      44'497,    86'243,    110'503,    132'049,
         216'091,     756'839,   859'433,  1'257'787,  1'398'269,
         2'976'221, 3'021'377, 6'972'593, 13'466'917, 20'996'011,
+        #endif
         0
     };
 

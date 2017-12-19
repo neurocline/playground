@@ -20,7 +20,7 @@ Num Num::operator^(const Num& rhs)
 Num& Num::operator^=(const Num& rhs)
 {
     // there isn't enough memory to handle exponents this big
-    if (rhs.data.len > 1 || rhs.cdatabuffer()[0] >= (1ULL << 32))
+    if (rhs.data.len > 1 || rhs.cdatabuffer()[0] >= (1ULL << 31))
     {
         assert(!"can't handle");
         return *this;

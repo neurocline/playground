@@ -67,6 +67,10 @@ public:
     // At the moment, we have sizeof(NumBuffer) == 32
     static constexpr int smallbufsize = 7;
 
+    // Question - does a NumBuffer still start on an 8-byte boundary? It would
+    // be bad if it didn't
+    #pragma pack(push, 4)
+
     uint32_t nonlocal : 1; // set to 0 for small data optimization
     int32_t sign : 1; // 0 for positive, -1 for negative
     int32_t len : 30; // this is too big, but there's nothing else to use it for yet
@@ -81,7 +85,11 @@ public:
             uint32_t* digits; // want different name than buf to catch bugs
         } big;
     };
+
+    #pragma pack(pop)
 };
+
+#include <cstddef>
 
 static_assert(sizeof(NumBuffer) == 32, "NumBuffer unexpected size");
 static_assert(sizeof(NumBuffer::buf) >= sizeof(NumBuffer::big), "NumBuffer::small data too small!");

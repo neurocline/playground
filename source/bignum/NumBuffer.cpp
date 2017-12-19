@@ -183,7 +183,7 @@ void NumBuffer::move_(NumBuffer& rhs)
 uint32_t* NumBuffer::reserve(int size)
 {
     // If we are already at least this size, ignore
-    if (size <= smallbufsize || nonlocal && size <= big.bufsize)
+    if (size <= smallbufsize || (nonlocal && size <= big.bufsize))
         return digits();
 
     // Allocate new buffer
