@@ -8,9 +8,9 @@ workspace "playground"
     cppdialect "C++17"
     warnings "Extra"
 
-	filter { "platforms:x32" }
+	filter { "platforms:*32" }
 	    architecture "x86"
-	filter { "platforms:x64" }
+	filter { "platforms:*64" }
 	    architecture "x64"
 	filter { "toolset:msc*" }
 	    defines { "_ITERATOR_DEBUG_LEVEL=0", "_CRT_SECURE_NO_WARNINGS", "_SCL_SECURE_NO_WARNINGS" }
