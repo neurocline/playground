@@ -64,13 +64,15 @@ TEST_CASE("NumBuffer - construct/destruct", "[NumBuffer]")
         uint32_t pad2;
         NumBuffer buf2;
         uint32_t pad3;
-        NumBuffer buf3;
         uint32_t pad4;
+        NumBuffer buf3;
+        uint32_t pad5;
 
         pad1;
         pad2;
         pad3;
         pad4;
+        pad5;
         REQUIRE((uintptr_t(&buf1) & 0x07) == 0);
     }
 }
@@ -957,10 +959,10 @@ TEST_CASE("Num - Mersenne primes", "[Num]")
         2, 3, 5, 7, 13,
         17, 19, 31, 61, 89,
         107, 127, 521, 607, 1279,
-        #if 0
         2203, 2281, 3217, 4253, 4423,
         9689, 9941, 11213, 19937, 21701,
          23'209,      44'497,    86'243,    110'503,    132'049,
+        #if 0
         216'091,     756'839,   859'433,  1'257'787,  1'398'269,
         2'976'221, 3'021'377, 6'972'593, 13'466'917, 20'996'011,
         #endif
