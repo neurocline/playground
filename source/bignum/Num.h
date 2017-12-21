@@ -84,6 +84,8 @@ public:
             int32_t bufsize;
             uint32_t* digits; // want different name than buf to catch bugs
         } big;
+
+        long long force_8byte;
     };
 
     #pragma pack(pop)

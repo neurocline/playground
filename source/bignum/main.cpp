@@ -67,6 +67,10 @@ TEST_CASE("NumBuffer - construct/destruct", "[NumBuffer]")
         NumBuffer buf3;
         uint32_t pad4;
 
+        pad1;
+        pad2;
+        pad3;
+        pad4;
         REQUIRE((uintptr_t(&buf1) & 0x07) == 0);
     }
 }
