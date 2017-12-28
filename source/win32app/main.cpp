@@ -6,6 +6,7 @@
 
 #include "Win32API.h"
 #include "Win32App.h"
+#include "Win32App_simple.h"
 
 #if 0
 
@@ -62,3 +63,12 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 #endif
 
 Win32App* MakeWin32App() { return new Win32App; }
+
+int WINAPI WinMain(
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR lpCmdLine,
+    int nCmdShow)
+{
+    return Win32App_simple{hInstance, hPrevInstance, lpCmdLine, nCmdShow}.Execute();
+}

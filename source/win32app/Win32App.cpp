@@ -10,6 +10,7 @@
 
 #include <cassert>
 
+#if 0
 int WINAPI WinMain(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
@@ -32,6 +33,7 @@ int WINAPI WinMain(
     delete program;
     return exitCode;
 }
+#endif
 
 bool Win32App::Startup(HINSTANCE hinst, HINSTANCE hprev, LPSTR cmdline, int cmdShow)
 {

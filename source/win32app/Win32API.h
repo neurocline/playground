@@ -25,6 +25,7 @@ template <typename T>
 class basic_Win32API
 {
 public:
+    using char_type = T;
     using string_type = std::basic_string<T>;
 
     // Calls LoadStringA or LoadStringW, returns appropriate std::string 
