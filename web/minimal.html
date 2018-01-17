@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Minimal</title>
+</head>
+<body>
+<p>These are the block elements</p>
+<address>This is an address block element</address>
+<article>This is an article block element</article>
+<aside>This is an aside block element</aside>
+<blockquote cite="useless_hyperlink">This is a blockquote block element</blockquote>
+
+<p>The following is a canvas block element in which a 80x100px red rectangle is rendered. The
+canvas background color is light yellow to show its bounds.</p>
+<canvas id="myCanvas" style="background-color: #FFFFCC"></canvas>
+<script>
+
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+ctx.fillStyle = "#FF0000";
+ctx.fillRect(0, 0, 80, 100);
+
+</script>
+
+<p>The dd, dt, and dl block elements are used to create a description list</p>
+<dl>
+  <dt>This is a dt element, a description term</dt>
+  <dd>This is a dd element, a description definition</dd>
+</dl>
+
+<div style="color:#3F7FFF; background-color: #FFFFCC">This is a div block element; a div is a container of other block elements. We set the div background color to a light yellow, and the foreground color to a medium blue.
+  <h5>This is an h5 in the div</h5>
+  <p>This is a p in the div</p>
+</div>
+
+<p>The form, button, fieldset, input, label, optgroup, option, output, select, and textarea elements are used to create a form</p>
+<form style="background-color: #FFFFCC">
+  <fieldset>
+    <legend>This is a use of "legend" in a fieldset</legend>
+    This is an input field: <input type="text"><br>
+  </fieldset>
+  <input type="submit" value="Submit">
+  <output>This is a output block element</output>
+</form>
+
+<p>figure and figcaption are used to mark up images</p>
+<figure style="background-color:#FFFFCC">
+  <img src="none.png" alt="Alt text for our missing image">
+  <figcaption>This is a figcaption block element</figcaption>
+</figure>
+
+<footer>This is a footer block element</footer>
+
+<h1>This is a h1 block element</h1>
+<h2>This is a h2 block element</h2>
+<h3>This is a h3 block element</h3>
+<h4>This is a h4 block element</h4>
+<h5>This is a h5 block element</h5>
+<h6>This is a h6 block element</h6>
+
+<header>This is a header block element</header>
+
+<hr>
+<p>The preceding is a hr block element. An hr element is now a thematic break, and only incidentally displays a horizontal rule</p>
+
+<p>ol is used to create an ordered list in conjunction with li elements</p>
+<ul>
+  <li>This is a li block element</li>
+</ul>
+
+<p>ul is used to create an unordered list in conjunction with li elements</p>
+<ul>
+  <li>This is a li block element</li>
+</ul>
+
+<main>This is a main block element</main>
+<nav>This is a nav block element</nav>
+
+<script>
+document.write("</p>This is where a noscript block would have appeared. If you see this, you have Javascript enabled, and so won't see any noscript blocks</p>")
+</script>
+<noscript>This is a noscript block element</noscript>
+
+<p>This is a p block element</p>
+<pre>This is a pre block element</pre>
+
+<section>This is a section block element</section>
+
+<p>table, thead, tfoot, tbody, th, and tr are used to create tables</p>
+<table style="background-color:#FFFFCC">
+  <thead style="background-color:#CCFFCC">
+    <tr>
+      <th>th header</th>
+      <th>Another th</th>
+    </tr>
+  </thead>
+  <tfoot style="background-color:#CCFFCC">
+    <tr>
+      <th>th in footer</th>
+      <th>Another th</th>
+    </tr>
+  <tbody>
+    <tr>
+      <th>th in first row</th>
+      <th>Another th</th>
+    </tr>
+    <tr>
+      <th>th in second row</th>
+      <th>Another th</th>
+    </tr>
+  </tbody>
+</table>
+
+<p>video, track, and source are used to show video elements. The
+canvas background color is light yellow to show its bounds.</p>
+<video style="background-color: #FFFFCC">This text is only visible in browsers that don't support the video element</video>
+
+<p>These are the inline elements</p>
+<ul>
+  <li><a href="useless_hyperlink">This is an "a" inline element</a></li>
+  <li><abbrev title="Mouseover shows the full text, what's displayed on the page is the abbreviated form">This is an "abbrev" inline element with mouseover title</abbrev></li>
+  <li><b>This is a "b" inline element</b></li>
+  <li><bdo dir="ltr">This is a "bdo" inline element going left-to-right</bdo></li>
+  <li><bdo dir="rtl">This is a "bdo" inline element going right-to-left</bdo></li>
+  <li>This entry is split into two lines<br>by using a "br" inline element</li>
+  <li>This is a "button" inline element: <button>Click me</button></li>
+  <li><cite>This is a "cite" inline element</cite></li>
+
+  <li>These are the phrase tags. They are not deprecated, but use of CSS and a "span" element instead of these tags is often a better approach:
+    <ul>
+      <li><code>This is a "code" inline element</code></li>
+      <li><em>This is an "em" inline element</em></li>
+      <li><kbd>This is a "kbd" inline element</kbd></li>
+      <li><samp>This is a "samp" inline element</samp></li>
+      <li><strong>This is a "strong" inline element</strong></li>
+      <li><var>This is a "var" inline element</var></li>
+    </ul>
+  </li>
+
+  <li><dfn title="Mouseover can show the definition/explanation of the item">This is a "dfn" inline element with mouseover title</dfn></li>
+  <li><i>This is an "i" inline element</i></li>
+  <li>This is an "img" inline element without an image: <img src="none.png" alt="This is the alt text"></li>
+
+  <li>"input" is used in a form to create an input field</li>
+  <li>"label" is used in a "form" to define a label for an "input" element</li>
+  <li>"map" is used to define a client-side image-map, an image with clickable areas</li>
+  <li>"object" is used to embed multimedia objects like audio, video, Java applets, ActiveX, PDF, and Flash</li>
+  <li><q>This is a "q" inline element</q></li>
+
+  <li>"select creates a drop-down list"
+    <select>
+      <option value="one">One</option>
+      <option value="two">Two</option>
+    </select></li>
+
+  <li><small>This is a "small" inline element</small></li>
+  <li><span style="color:blue">This is a "span" that is colored blue</span></li>
+  <li>Part of this line is <sub>subscript</sub> using the "sub" element</li>
+  <li>Part of this line is <sup>superscript</sup> using the "sup" element</li>
+  <li><textarea rows="4" cols="30">The "textarea" element can create a multiline input control</textarea></li>
+  <li>The "time" tag used to mark a time like <time>10:00</time><br>
+    The "time" tag used with datetime like <time datetime="1961-06-23 04:00">My birthday</time></li>
+</ul>
+
+
+<p>These are inline elements no longer supported in HTML5</p>
+<ul>
+  <li><acronym title="Mouseover shows the definition of the acronym">This is an "acronym" inline element with mouseover title</acronym></li>
+  <li><big>This is a "big" inline element</big></li>
+  <li><tt>This is a "tt" inline element</tt></li>
+</ul>
+</body>
+</html>

@@ -25,7 +25,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINWINDOW           ICON    DISCARDABLE     "res\\Initials.ico"
+IDR_MAINWINDOW           ICON    DISCARDABLE     "res\\Icons-Land-Medical-Body-Brain.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

@@ -226,7 +226,7 @@ bool IsUTF8Char(uint8_t* utf8)
     else if ((utf8[1] & 0xC0) != 0x80)
         return false;
 
-    // Decode the value. It must be in the range 0x80..0x7FF
+    // Decode the value. It must be in the range 0x080..0x7FF
     else if ((utf8[0] & 0xE0) == 0xC0)
     {
         int v1 = utf8[0] & 0x1f;
@@ -246,7 +246,7 @@ bool IsUTF8Char(uint8_t* utf8)
     else if ((utf8[2] & 0xC0) != 0x80)
         return false;
 
-    // Decode the value. It must be in the range 0x800..0xFFFF
+    // Decode the value. It must be in the range 0x0800..0xFFFF
     else if ((utf8[0] & 0xF0) == 0xE0)
     {
         int v1 = utf8[0] & 0x0f;
