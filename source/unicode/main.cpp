@@ -267,7 +267,7 @@ bool IsUTF8Char(uint8_t* utf8)
     else if ((utf8[3] & 0xC0) != 0x80)
         return false;
 
-    // Decode the value. It must be in the range 0x800..0xFFFF
+    // Decode the value. It must be in the range 0x10000..0x1FFFFF
     else if ((utf8[0] & 0xF8) == 0xF0)
     {
         int v1 = utf8[0] & 0x0f;
