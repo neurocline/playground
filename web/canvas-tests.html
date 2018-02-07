@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Canvas tests</title>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML">
+</script></head>
+<body>
+
+<p>This is a canvas that should have some text in it. But it doesn't, because
+canvas elements don't actually draw any elements inside them. Well, they do,
+but only specific ones.</p>
+<canvas>
+    <p>Hello there</p>
+</canvas>
+
+<p>This is a canvas with a lot of text in it, but also with a border and fill</p>
+<canvas style="border-style: solid">
+    <p>So, does text stay in the canvas, does it make the shape of it grow either
+        horizontally or vertically</p>
+</canvas>
+
+<pre>
+So, how exactly do pre blocks work?
+</pre>
+
+<ul>
+    <li>What about unordered lists?</li>
+    <ul>
+        <li>What about a list inside a list?</li>
+    </ul>
+    <li>What about a really long item for an unordered list that wraps at least once?</li>
+</ul>
+
+<p style="line-height: 24px">Let's play with subscript and superscript. With a very widely
+spaced line, what happens when we have A<sub>i</sub> and n<sup>2</sup>? Does it still expand
+the length of the line because it blindly looks at line height values, or does it look
+at character boxes? Annoyingly, it looks at just line-height.</p>
+
+<p>When $a \ne 0$, there are two solutions to \(ax^2 + bx + c = 0\) and they are
+$$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$</p>
+
+<p>I think that this is not adjusting line-height in weird ways. Let's test:</p>
+
+<p>This is line 1 without any math on it<br>
+This is line 2: `ax^2`<br>
+This is line 3: `A_i`<br>
+This is line 4 without any math on it<br>
+This is line 5</p>
+
+<p>Cool. Of course, it's on me to make sure text doesn't actually overwrite. And MathJax
+renders quite slowly compared to regular text. In fact, the page renders twice, once
+with the plain text, and second with the math notation text. I assume that the Javascript
+code is inserting placeholders to let the HTML renderer generate boxes and then painting
+over pixels with math? Actually, no, that's not what's happening either. I guess I could
+look in the source code.</p>
+
+<h1>So what about this late <code>&lt;h1></code> element?</h1>
+
+</body>
+</html>
