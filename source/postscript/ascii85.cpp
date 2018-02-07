@@ -6,18 +6,6 @@
 #include <cstdlib>
 #include <cstring>
 
-// Convert a single 4-byte value into a 5-character string
-// (p points to at least 5 allocated bytes)
-inline void QuadTo85(uint32_t v, char* p)
-{
-    for (int i = 4; i >= 0; i--)
-    {
-        char rem = v % 85;
-        v = v / 85;
-        p[i] = '!' + rem;
-    }
-}
-
 class streambuf
 {
 public:
@@ -55,11 +43,36 @@ void streambuf::reserve(int n)
     size = nsize;
 }
 
+// Convert a single 4-byte value into a 5-character string
+// (p points to at least 5 allocated bytes)
+inline void QuadTo85(uint32_t v, char* a85)
+{
+    for (int i = 4; i >= 0; i--)
+    {
+        char rem = v % 85;
+        v = v / 85;
+        a85[i] = '!' + rem;
+    }
+}
+
+// Convert a 5-character ascii85 string to a 4-byte value
+// (a85 points to 5 valid ascii85 bytes)
+uint32_t A85ToQuad(char* a85)
+{
+    uint32_t v = 0;
+    for (int i = 0; i < 5; i++)
+        v = (v * 85) + (*a85++ - '!');
+    return v;
+}
+
 char* ToAscii85(uint8_t* data, int len)
 {
     streambuf o;
 
     // Convert groups of 4 octects - end is handled specially
+    // Note that if we really cared about speed, this is completely parallelizable,
+    // each quad can be converted independently of other quads; not multithreading,
+    // but instruction-level parallelism, or maybe using x86 SSE instructions.
     while (len >= 4)
     {
         // get a big-endian int (we expect compilers to turn this into efficient code)
@@ -101,10 +114,10 @@ char* ToAscii85(uint8_t* data, int len)
     return o.buf;
 }
 
-streambuf FromAscii85(char* a85, int len = 0)
+streambuf FromAscii85(char* a85, int len = -1)
 {
     streambuf o;
-    if (len == 0)
+    if (len < 0)
         len = strlen(a85);
 
     while (len > 0)
@@ -112,39 +125,35 @@ streambuf FromAscii85(char* a85, int len = 0)
         if (*a85 == 'z')
         {
             o.reserve(4);
-            o.buf[o.len++] = 0;
-            o.buf[o.len++] = 0;
-            o.buf[o.len++] = 0;
-            o.buf[o.len++] = 0;
+            *(uint32_t*)(o.buf+o.len) = 0;
+            o.len += 4;
             len--;
             a85++;
         }
         else if (len >= 5)
         {
-            uint32_t v = 0;
-            for (int i = 0; i < 5; i++)
-                v = (v * 85) + (*a85++ - '!');
+            uint32_t v = A85ToQuad(a85);
             o.reserve(4);
             o.buf[o.len++] = (v >> 24);
             o.buf[o.len++] = ((v >> 16) & 0xFF);
             o.buf[o.len++] = ((v >> 8) & 0xFF);
             o.buf[o.len++] = (v & 0xFF);
             len -= 5;
+            a85 += 5;
         }
         else
         {
-            uint32_t v = 0;
+            char tbuf[5];
             int i = 0;
             for (; i < len; i++)
-                v = (v * 85) + (*a85++ - '!');
+                tbuf[i] = *a85++;
             for (; i < 5; i++)
-                v = (v * 85) + ('u' - '!');
+                tbuf[i] = 'u';
 
-            // Now output 1-3 bytes (not 4, otherwise this would have been
-            // an unpadded 5-char quad)
-            // 2 -> 1
-            // 3 -> 2
-            // 4 -> 3
+            uint32_t v = A85ToQuad(tbuf);
+
+            // Output, skipping as many bytes of output as we had to pad
+            // by; this works out for 5to4
             len -= 1;
             o.reserve(len);
             o.buf[o.len++] = (v >> 24);
