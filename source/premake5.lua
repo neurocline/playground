@@ -27,6 +27,7 @@ newoption {
 }
 
 include "bignum"
+include "buffer"
 include "compat"
 include "file"
 include "operators"
