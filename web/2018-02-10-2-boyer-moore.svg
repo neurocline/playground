@@ -1,0 +1,191 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11/dtd">
+
+<svg version="1.1"
+    width="800" height="275"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <g id="box">
+      <rect x="0" y="0" width="25" height="25" stroke="black" stroke-width="1"/>
+    </g>
+  </defs>
+
+  <use xlink:href="#box" transform="translate(50 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(75 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(100 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(125 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(150 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(175 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(200 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(225 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(250 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(275 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(300 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(325 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(350 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(375 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(400 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(425 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(450 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(475 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(500 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(525 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(550 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(575 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(600 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(625 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(650 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(675 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(700 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(725 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(750 0)" fill="none"/>
+  <use xlink:href="#box" transform="translate(775 0)" fill="none"/>
+  <text x="50" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">t</text>
+  <text x="75" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">h</text>
+  <text x="100" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">e</text>
+  <text x="125" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)"> </text>
+  <text x="150" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">m</text>
+  <text x="175" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="200" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">n</text>
+  <text x="225" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)"> </text>
+  <text x="250" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="275" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="300" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="325" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="350" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="375" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)"> </text>
+  <text x="400" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">s</text>
+  <text x="425" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="450" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">y</text>
+  <text x="475" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">s</text>
+  <text x="500" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)"> </text>
+  <text x="525" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="550" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="575" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="600" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="625" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="650" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="675" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">d</text>
+  <text x="700" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="725" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="750" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="775" y="0" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+
+  <use xlink:href="#box" transform="translate(50 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(75 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(100 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(125 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(150 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(175 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(200 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(225 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(250 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(275 50)" fill="none"/>
+  <use xlink:href="#box" transform="translate(300 50)" fill="#ff9f9f"/>
+  <text x="50"  y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="75"  y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="100" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="125" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="150" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="175" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="200" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">d</text>
+  <text x="225" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="250" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="275" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="300" y="50" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+
+  <use xlink:href="#box" transform="translate(100 100)" fill="none"/>
+  <use xlink:href="#box" transform="translate(125 100)" fill="none"/>
+  <use xlink:href="#box" transform="translate(150 100)" fill="none"/>
+  <use xlink:href="#box" transform="translate(175 100)" fill="none"/>
+  <use xlink:href="#box" transform="translate(200 100)" fill="none"/>
+  <use xlink:href="#box" transform="translate(225 100)" fill="none"/>
+  <use xlink:href="#box" transform="translate(250 100)" fill="#ff9f9f"/>
+  <use xlink:href="#box" transform="translate(275 100)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(300 100)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(325 100)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(350 100)" fill="#9fff9f"/>
+  <text x="100" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="125" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="150" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="175" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="200" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="225" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="250" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">d</text>
+  <text x="275" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="300" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="325" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="350" y="100" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+
+  <use xlink:href="#box" transform="translate(150 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(175 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(200 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(225 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(250 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(275 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(300 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(325 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(350 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(375 150)" fill="none"/>
+  <use xlink:href="#box" transform="translate(400 150)" fill="#ff9f9f"/>
+  <text x="150" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="175" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="200" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="225" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="250" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="275" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="300" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">d</text>
+  <text x="325" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="350" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="375" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="400" y="150" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+
+  <use xlink:href="#box" transform="translate(425 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(450 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(475 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(500 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(525 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(550 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(575 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(600 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(625 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(650 200)" fill="none"/>
+  <use xlink:href="#box" transform="translate(675 200)" fill="#ff9f9f"/>
+  <text x="425" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="450" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="475" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="500" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="525" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="550" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="575" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">d</text>
+  <text x="600" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="625" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="650" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="675" y="200" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+
+  <use xlink:href="#box" transform="translate(525 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(550 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(575 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(600 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(625 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(650 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(675 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(700 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(725 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(750 250)" fill="#9fff9f"/>
+  <use xlink:href="#box" transform="translate(775 250)" fill="#9fff9f"/>
+  <text x="525" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="550" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="575" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="600" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="625" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">c</text>
+  <text x="650" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="675" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">d</text>
+  <text x="700" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+  <text x="725" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">b</text>
+  <text x="750" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">r</text>
+  <text x="775" y="250" font-size="18" text-anchor="middle" transform="translate(12.5 18)">a</text>
+
+</svg>
